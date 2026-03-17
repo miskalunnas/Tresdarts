@@ -80,6 +80,10 @@ class _AppShellState extends State<AppShell> {
                 onSelectLeaderboard: () => _navigatorKey.currentState?.pushNamed(
                   LeaderboardView.routeName,
                 ),
+                onClose: () => _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                  ScreensaverView.routeName,
+                  (route) => false,
+                ),
               ),
             );
           }

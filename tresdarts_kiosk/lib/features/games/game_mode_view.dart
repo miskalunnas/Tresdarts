@@ -20,68 +20,66 @@ class GameModeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  FilledButton.tonalIcon(
+                  OutlinedButton.icon(
                     onPressed: onExit,
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Takaisin'),
                   ),
                   const Spacer(),
-                  const Icon(Icons.sports_bar, size: 22),
+                  Icon(Icons.sports, size: 20, color: cs.onSurfaceVariant),
                 ],
               ),
               const SizedBox(height: 24),
               Text(
                 mode.title,
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
                 mode.subtitle,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 24),
               if (onGameEnd != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: FilledButton.icon(
                     onPressed: () => onGameEnd!(mode),
-                    icon: const Icon(Icons.flag),
+                    icon: const Icon(Icons.flag, size: 18),
                     label: const Text('Peli ohi – tallenna tulos'),
                   ),
                 ),
               Expanded(
                 child: Container(
                   width: double.infinity,
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.6),
-                    ),
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cs.outline),
                   ),
                   child: Center(
                     child: Text(
                       'Tähän tulee ${mode.title}-pelin logiikka.',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -111,42 +109,39 @@ class GameModeSelectView extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  FilledButton.tonalIcon(
+                  OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Takaisin'),
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
-                      border: Border.all(
-                        color: cs.outlineVariant.withValues(alpha: 0.6),
-                      ),
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.outline),
                     ),
                     child: Text(
                       'Pelimuodot',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
                           ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -157,7 +152,7 @@ class GameModeSelectView extends StatelessWidget {
                         crossAxisCount: crossAxisCount,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 1.45,
+                        childAspectRatio: 1.4,
                       ),
                       itemCount: modes.length,
                       itemBuilder: (context, index) {
@@ -188,67 +183,59 @@ class _GameModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              cs.surfaceContainerHighest.withValues(alpha: 0.85),
-              cs.surface.withValues(alpha: 0.55),
-            ],
+    return Material(
+      color: cs.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outline),
           ),
-          border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.7),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 62,
-                    height: 62,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: cs.primaryContainer.withValues(alpha: 0.9),
+                      color: cs.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       mode.icon,
-                      size: 30,
+                      size: 24,
                       color: cs.onPrimaryContainer,
                     ),
                   ),
                   const Spacer(),
                   Icon(
                     Icons.chevron_right,
-                    size: 28,
+                    size: 20,
                     color: cs.onSurfaceVariant,
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Text(
                 mode.title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
                     ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 mode.subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: cs.onSurfaceVariant,
-                      height: 1.2,
                     ),
               ),
             ],
@@ -258,4 +245,3 @@ class _GameModeCard extends StatelessWidget {
     );
   }
 }
-

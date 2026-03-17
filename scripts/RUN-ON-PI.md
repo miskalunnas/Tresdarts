@@ -1,53 +1,77 @@
-# Muutokset näkyviin Raspberryllä
+# Päivitä kiosk Raspberryllä
 
-Muutokset (screensaver-kuva, asetukset, leaderboard jne.) tulevat mukaan **vain uudelleen buildatusta sovelluksesta**. Pelkkä `git pull` Pi:llä ei riitä, jos sovellus ei ole buildattu uudestaan pullin jälkeen.
+## Tapa 1: Aja yksi skripti Pi:llä (helpoin)
 
-## Vaihtoehto A: Buildataan Windowsilla, kopioidaan Pi:lle
+**Oletus:** Repo on jo Pi:llä (esim. `~/Tresdarts` tai `~/darts`).
 
-1. **Windows-koneella** (projektin juuressa):
+1. **SSH Pi:lle** (tai avaa terminaali suoraan Pi:llä):
+   ```bash
+   ssh pi@IP_OSOITE
+   ```
+
+2. **Mene repon juureen ja aja skripti:**
+   ```bash
+   cd ~/Tresdarts
+   chmod +x scripts/update-and-run-on-pi.sh
+   ./scripts/update-and-run-on-pi.sh
+   ```
+   (Korvaa `~/Tresdarts` sillä polulla missä repo on.)
+
+Skripti tekee: pull → clean → pub get → build → käynnistää sovelluksen. Kun haluat päivittää uudestaan, aja vain `./scripts/update-and-run-on-pi.sh` uudestaan.
+
+---
+
+## Tapa 2: Repo ei ole vielä Pi:llä
+
+1. Pi:llä asenna Git ja Flutter (jos ei jo):
+   ```bash
+   sudo apt update
+   sudo apt install -y git
+   # Flutter: https://docs.flutter.dev/get-started/install/linux
+   ```
+
+2. Kloonaa repo Pi:lle:
+   ```bash
+   cd ~
+   git clone https://github.com/miskalunnas/Tresdarts.git
+   cd Tresdarts
+   ```
+
+3. Aja Tapa 1:n skripti:
+   ```bash
+   chmod +x scripts/update-and-run-on-pi.sh
+   ./scripts/update-and-run-on-pi.sh
+   ```
+
+---
+
+## Tapa 3: Buildataan Windowsilla, kopioidaan Pi:lle
+
+Käy vain jos et halua asentaa Flutteria Pi:lle.
+
+1. **Windows (PowerShell):**
    ```powershell
+   cd c:\Users\miska\smart-tres\darts
    .\scripts\build-for-pi.ps1
    ```
-   Tai käsin:
+
+2. **Kopioi kansio Pi:lle** (korvaa `PI_IP` Pi:n IP:llä):
    ```powershell
-   cd tresdarts_kiosk
-   flutter clean
-   flutter pub get
-   flutter build linux --target-platform linux-arm64
+   scp -r tresdarts_kiosk\build\linux\arm64\release\* pi@PI_IP:~/tresdarts_run/
    ```
 
-2. **Kopioi** kansio `tresdarts_kiosk\build\linux\arm64\release\` Pi:lle (esim. SCP, USB-tikku, verkkokansio):
-   ```powershell
-   scp -r tresdarts_kiosk\build\linux\arm64\release\* pi@RASPBERRY_IP:/home/pi/tresdarts_kiosk/
-   ```
-   (Korvaa `RASPBERRY_IP` Pi:n IP-osoitteella.)
-
-3. **Pi:llä** (SSH tai suoraan Pi:llä):
+3. **Pi:llä:**
    ```bash
-   cd /home/pi/tresdarts_kiosk
+   cd ~/tresdarts_run
    chmod +x tresdarts_kiosk
    ./tresdarts_kiosk
    ```
 
-## Vaihtoehto B: Koodi suoraan Pi:lle ja build Pi:llä
+---
 
-1. **Pi:llä** (tai koneella josta deployataan Pi:lle):
-   ```bash
-   cd /polku/tresdarts   # tai missä repo on
-   git pull origin main
-   cd tresdarts_kiosk
-   flutter clean
-   flutter pub get
-   flutter run -d linux --release
-   ```
-   Tai buildiksi ilman run:
-   ```bash
-   flutter build linux --target-platform linux-arm64
-   ./build/linux/arm64/release/tresdarts_kiosk
-   ```
+## Yhteenveto
 
-## Tärkeää
-
-- **flutter clean** – tyhjentää vanhan buildin, jotta uudet assetit (kuvat, playlist.json) tulevat mukaan.
-- **flutter pub get** – varmistaa riippuvuudet.
-- Aina kun koodia tai assetteja muutetaan, buildataan ja ajetaan/kopioidaan uusi versio – silloin muutokset näkyvät Raspilla.
+| Missä buildataan? | Mitä teet |
+|-------------------|-----------|
+| **Pi:llä**        | Pi:llä: `cd ~/Tresdarts && ./scripts/update-and-run-on-pi.sh` |
+| **Windowsilla**   | Build-for-pi.ps1 → scp release-kansio Pi:lle → Pi:llä `./tresdarts_kiosk` |

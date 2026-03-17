@@ -52,37 +52,39 @@ class _LeaderboardViewState extends State<LeaderboardView> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  FilledButton.tonalIcon(
+                  OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Takaisin'),
                   ),
                   const Spacer(),
                   Text(
                     'Tulokset',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    FilterChip(
-                      label: const Text('Kaikki'),
+                    _FilterChip(
+                      label: 'Kaikki',
                       selected: _filterMode == null,
-                      onSelected: (_) {
+                      onTap: () {
                         setState(() => _filterMode = null);
                         _load();
                       },
@@ -91,10 +93,10 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                     ...GameMode.defaults.map(
                       (mode) => Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(mode.title),
+                        child: _FilterChip(
+                          label: mode.title,
                           selected: _filterMode == mode.id,
-                          onSelected: (_) {
+                          onTap: () {
                             setState(() => _filterMode = mode.id);
                             _load();
                           },
@@ -104,17 +106,22 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Expanded(
                 child: _loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: cs.primary,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : _results.isEmpty
                         ? Center(
                             child: Text(
                               'Ei tuloksia.',
                               style: Theme.of(context)
                                   .textTheme
-                                  .titleMedium
+                                  .bodyLarge
                                   ?.copyWith(color: cs.onSurfaceVariant),
                             ),
                           )
@@ -123,40 +130,36 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                             itemBuilder: (context, index) {
                               final r = _results[index];
                               return Container(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                padding: const EdgeInsets.all(14),
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: cs.outlineVariant.withValues(alpha: 0.6),
-                                  ),
-                                  color: cs.surfaceContainerHighest
-                                      .withValues(alpha: 0.5),
+                                  color: cs.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: cs.outline),
                                 ),
                                 child: Row(
                                   children: [
                                     Container(
-                                      width: 40,
-                                      height: 40,
+                                      width: 36,
+                                      height: 36,
                                       decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: cs.primaryContainer
-                                            .withValues(alpha: 0.8),
+                                        color: cs.primaryContainer,
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Center(
                                         child: Text(
                                           '${index + 1}',
                                           style: Theme.of(context)
                                               .textTheme
-                                              .titleMedium
+                                              .titleSmall
                                               ?.copyWith(
-                                                fontWeight: FontWeight.w800,
+                                                fontWeight: FontWeight.w600,
                                                 color: cs.onPrimaryContainer,
                                               ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 14),
+                                    const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -166,11 +169,13 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                                             r.winnerName,
                                             style: Theme.of(context)
                                                 .textTheme
-                                                .titleMedium
+                                                .titleSmall
                                                 ?.copyWith(
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: cs.onSurface,
                                                 ),
                                           ),
+                                          const SizedBox(height: 2),
                                           Text(
                                             '${_modeTitle(r.gameModeId)} · ${r.players.join(', ')}',
                                             style: Theme.of(context)
@@ -199,6 +204,47 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                           ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? cs.primaryContainer : cs.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? cs.primary : cs.outline,
+            ),
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: selected ? cs.onPrimaryContainer : cs.onSurface,
+                ),
           ),
         ),
       ),

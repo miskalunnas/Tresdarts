@@ -9,24 +9,26 @@ class SettingsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  FilledButton.tonalIcon(
+                  OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Takaisin'),
                   ),
                   const Spacer(),
                   Text(
                     'Asetukset',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
                   ),
                 ],
@@ -38,7 +40,7 @@ class SettingsView extends StatelessWidget {
                     _SettingsSection(
                       title: 'Media (screensaver)',
                       subtitle: 'Kuvat ja videot',
-                      icon: Icons.slideshow,
+                      icon: Icons.slideshow_outlined,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -51,7 +53,7 @@ class SettingsView extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Tiedosto: assets/config/playlist.json',
+                            'assets/config/playlist.json',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: cs.outline,
                                   fontFamily: 'monospace',
@@ -90,11 +92,11 @@ class _SettingsSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.6)),
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,15 +104,15 @@ class _SettingsSection extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: cs.primaryContainer.withValues(alpha: 0.9),
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: cs.onPrimaryContainer),
+                child: Icon(icon, size: 22, color: cs.onPrimaryContainer),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +120,8 @@ class _SettingsSection extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
                           ),
                     ),
                     Text(
@@ -132,7 +135,7 @@ class _SettingsSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           child,
         ],
       ),

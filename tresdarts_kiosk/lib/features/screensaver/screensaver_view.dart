@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -85,7 +84,7 @@ class _ScreensaverViewState extends State<ScreensaverView> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.all(24),
               child: _BottomOverlay(
                 child: _TapHint(
                   text: playlist == null
@@ -117,15 +116,7 @@ class _ScreensaverBackground extends StatelessWidget {
     if (images.isEmpty) {
       return DecoratedBox(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0B1220),
-              Color(0xFF001B2E),
-              Color(0xFF042F2E),
-            ],
-          ),
+          color: Color(0xFF0D0D0D),
         ),
         child: Center(
           child: ConstrainedBox(
@@ -227,16 +218,17 @@ class _TopClock extends StatelessWidget {
   Widget build(BuildContext context) {
     final time = '${_two(now.hour)}:${_two(now.minute)}';
     final date = '$_weekdayFi ${now.day}.${now.month}.${now.year}';
+    final cs = Theme.of(context).colorScheme;
 
     return Align(
-      alignment: Alignment.topLeft,
+      alignment: Alignment.topRight,
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(24),
         child: _BottomOverlay(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.schedule, size: 18),
+              Icon(Icons.schedule, size: 16, color: cs.onSurfaceVariant),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,13 +237,15 @@ class _TopClock extends StatelessWidget {
                   Text(
                     time,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
                   ),
                   Text(
                     date,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
                   ),
                 ],
@@ -272,28 +266,14 @@ class _BottomOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                cs.surfaceContainerHighest.withValues(alpha: 0.62),
-                cs.surface.withValues(alpha: 0.46),
-              ],
-            ),
-            border: Border.all(
-              color: cs.outlineVariant.withValues(alpha: 0.55),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: child,
-          ),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: child,
     );
   }
 }
@@ -305,12 +285,19 @@ class _TapHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.touch_app, size: 18),
+        Icon(Icons.touch_app, size: 16, color: cs.onSurfaceVariant),
         const SizedBox(width: 10),
-        Text(text, style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          text,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+        ),
       ],
     );
   }
