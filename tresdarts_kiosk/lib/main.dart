@@ -9,12 +9,20 @@ import 'app/app_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await WakelockPlus.enable();
+  try {
+    await WakelockPlus.enable();
+  } catch (_) {
+    // Pi/Linux: org.freedesktop.ScreenSaver D-Bus may be missing — continue without wakelock
+  }
 
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    await windowManager.ensureInitialized();
-    await windowManager.waitUntilReadyToShow();
-    await windowManager.setFullScreen(true);
+    try {
+      await windowManager.ensureInitialized();
+      await windowManager.waitUntilReadyToShow();
+      await windowManager.setFullScreen(true);
+    } catch (_) {
+      // Continue without fullscreen if window_manager fails (e.g. on headless/SSH)
+    }
   }
 
   runApp(const TresdartsApp());
