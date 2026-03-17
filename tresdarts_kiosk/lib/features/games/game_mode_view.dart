@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'game_mode.dart';
+import 'game_rules.dart';
 
 class GameModeView extends StatelessWidget {
   const GameModeView({
@@ -37,7 +38,11 @@ class GameModeView extends StatelessWidget {
                     label: const Text('Takaisin'),
                   ),
                   const Spacer(),
-                  Icon(Icons.sports, size: 20, color: cs.onSurfaceVariant),
+                  IconButton(
+                    tooltip: 'Säännöt',
+                    onPressed: () => GameRules.show(context, mode.id),
+                    icon: Icon(Icons.info_outline, color: cs.onSurfaceVariant),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),

@@ -4,6 +4,8 @@ import '../games/game_mode.dart';
 import 'game_result.dart';
 import 'leaderboard_repository.dart';
 
+enum _LeaderboardTab { ranking, recent, stats }
+
 class LeaderboardView extends StatefulWidget {
   const LeaderboardView({super.key});
 
@@ -16,7 +18,11 @@ class LeaderboardView extends StatefulWidget {
 class _LeaderboardViewState extends State<LeaderboardView> {
   final _repo = LeaderboardRepository();
   List<GameResult> _results = [];
+  List<LeaderboardEntry> _ranking = [];
+  List<GameModeStats> _modeStats = [];
+  List<LeaderboardEntry> _allPlayers = [];
   GameModeId? _filterMode;
+  _LeaderboardTab _tab = _LeaderboardTab.ranking;
   bool _loading = true;
 
   @override
@@ -27,12 +33,32 @@ class _LeaderboardViewState extends State<LeaderboardView> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final results = await _repo.getResults(mode: _filterMode);
-    if (mounted) {
-      setState(() {
-        _results = results;
-        _loading = false;
-      });
+    if (_tab == _LeaderboardTab.ranking) {
+      final ranking = await _repo.getLeaderboardByWins(mode: _filterMode);
+      if (mounted) {
+        setState(() {
+          _ranking = ranking;
+          _loading = false;
+        });
+      }
+    } else if (_tab == _LeaderboardTab.stats) {
+      final modeStats = await _repo.getAllGameModeStats();
+      final players = await _repo.getLeaderboardByWins(limit: 200);
+      if (mounted) {
+        setState(() {
+          _modeStats = modeStats;
+          _allPlayers = players;
+          _loading = false;
+        });
+      }
+    } else {
+      final results = await _repo.getResults(mode: _filterMode);
+      if (mounted) {
+        setState(() {
+          _results = results;
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -46,6 +72,337 @@ class _LeaderboardViewState extends State<LeaderboardView> {
 
   String _formatDate(DateTime d) {
     return '${d.day}.${d.month}.${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildLeaderboardBody(ColorScheme cs) {
+    if (_loading) {
+      return Center(
+        child: CircularProgressIndicator(
+          color: cs.primary,
+          strokeWidth: 2,
+        ),
+      );
+    }
+    if (_tab == _LeaderboardTab.stats) return _buildStatsContent(cs);
+    if (_tab == _LeaderboardTab.ranking) {
+      if (_ranking.isEmpty) {
+        return Center(
+          child: Text(
+            'Ei tuloksia.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+          ),
+        );
+      }
+      return ListView.builder(
+        itemCount: _ranking.length,
+        itemBuilder: (context, index) {
+          final e = _ranking[index];
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outline),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: cs.onPrimaryContainer,
+                          ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        e.playerName,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${e.wins} / ${e.played} voittoa'
+                            '${e.played > 0 ? ' (${(e.winRate * 100).toStringAsFixed(0)} %)' : ''}'
+                            '${e.lastPlayed != null ? ' · Viim. ${_formatDate(e.lastPlayed!)}' : ''}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
+    // Viimeisimmät pelit
+    if (_results.isEmpty) {
+      return Center(
+        child: Text(
+          'Ei tuloksia.',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: _results.length,
+      itemBuilder: (context, index) {
+        final r = _results[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outline),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: cs.onPrimaryContainer,
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r.winnerName,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_modeTitle(r.gameModeId)} · ${r.players.join(', ')}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      _formatDate(r.playedAt),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.outline,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatsContent(ColorScheme cs) {
+    return ListView(
+      children: [
+        Text(
+          'Pelikohtaiset tilastot',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+        ),
+        const SizedBox(height: 12),
+        ..._modeStats.map((s) {
+          final mode = GameMode.defaults.firstWhere(
+            (m) => m.id == s.modeId,
+            orElse: () => GameMode.x01,
+          );
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outline),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mode.title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${s.gamesPlayed} peliä · ${s.uniquePlayers} pelaajaa',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                ),
+                if (s.topPlayers.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...s.topPlayers.take(5).map((e) => Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '${e.playerName}: ${e.wins} voittoa (${e.played} peliä)',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                        ),
+                      )),
+                ],
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 24),
+        Text(
+          'Käyttäjäkohtaiset tilastot',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Valitse pelaaja nähdäksesi tilastot per pelimuoto',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 12),
+        ..._allPlayers.map((e) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outline),
+              ),
+              child: ListTile(
+                title: Text(
+                  e.playerName,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                ),
+                subtitle: Text(
+                  '${e.wins} voittoa / ${e.played} peliä${e.played > 0 ? ' (${(e.winRate * 100).toStringAsFixed(0)} %)' : ''}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                ),
+                onTap: () => _showUserStatsDialog(context, e.playerName, cs),
+              ),
+            )),
+      ],
+    );
+  }
+
+  Future<void> _showUserStatsDialog(BuildContext context, String playerName, ColorScheme cs) async {
+    final stats = await _repo.getUserStats(playerName);
+    if (!context.mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(stats.playerName),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Yhteensä: ${stats.totalWins} voittoa / ${stats.totalPlayed} peliä'
+                    '${stats.totalPlayed > 0 ? ' (${(stats.winRate * 100).toStringAsFixed(0)} % voittoja)' : ''}',
+                style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: cs.onSurface,
+                    ),
+              ),
+              if (stats.lastPlayed != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Viimeisin peli: ${_formatDate(stats.lastPlayed!)}',
+                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                ),
+              ],
+              if (stats.byMode.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Per pelimuoto',
+                  style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...stats.byMode.entries.map((entry) {
+                  final mode = GameMode.defaults.firstWhere(
+                    (m) => m.id == entry.key,
+                    orElse: () => GameMode.x01,
+                  );
+                  final m = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '${mode.title}: ${m.wins} / ${m.played} (${m.played > 0 ? (m.winRate * 100).toStringAsFixed(0) : "0"} %)',
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                    ),
+                  );
+                }),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Sulje'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -77,7 +434,39 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                 ],
               ),
               const SizedBox(height: 20),
-              SingleChildScrollView(
+              Row(
+                children: [
+                  _FilterChip(
+                    label: 'Eniten voittoja',
+                    selected: _tab == _LeaderboardTab.ranking,
+                    onTap: () {
+                      setState(() => _tab = _LeaderboardTab.ranking);
+                      _load();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Viimeisimmät pelit',
+                    selected: _tab == _LeaderboardTab.recent,
+                    onTap: () {
+                      setState(() => _tab = _LeaderboardTab.recent);
+                      _load();
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Tilastot',
+                    selected: _tab == _LeaderboardTab.stats,
+                    onTap: () {
+                      setState(() => _tab = _LeaderboardTab.stats);
+                      _load();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_tab != _LeaderboardTab.stats)
+                SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
@@ -108,100 +497,7 @@ class _LeaderboardViewState extends State<LeaderboardView> {
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: _loading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: cs.primary,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : _results.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Ei tuloksia.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _results.length,
-                            itemBuilder: (context, index) {
-                              final r = _results[index];
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: cs.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: cs.outline),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 36,
-                                      height: 36,
-                                      decoration: BoxDecoration(
-                                        color: cs.primaryContainer,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '${index + 1}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: cs.onPrimaryContainer,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            r.winnerName,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: cs.onSurface,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${_modeTitle(r.gameModeId)} · ${r.players.join(', ')}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: cs.onSurfaceVariant,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          Text(
-                                            _formatDate(r.playedAt),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(color: cs.outline),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                child: _buildLeaderboardBody(cs),
               ),
             ],
           ),

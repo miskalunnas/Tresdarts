@@ -6,6 +6,7 @@ class HomeMenuView extends StatelessWidget {
     required this.onSelectGameModes,
     required this.onSelectSettings,
     required this.onSelectLeaderboard,
+    required this.onSelectAbout,
     required this.onClose,
   });
 
@@ -14,6 +15,7 @@ class HomeMenuView extends StatelessWidget {
   final VoidCallback onSelectGameModes;
   final VoidCallback onSelectSettings;
   final VoidCallback onSelectLeaderboard;
+  final VoidCallback onSelectAbout;
   final VoidCallback onClose;
 
   String _two(int n) => n.toString().padLeft(2, '0');
@@ -120,15 +122,8 @@ class HomeMenuView extends StatelessWidget {
                           title: 'Tietoja',
                           subtitle: 'Versio ja laite',
                           icon: Icons.info_outline,
-                          onTap: () {},
-                          disabled: true,
-                        ),
-                        _MenuTile(
-                          title: 'Huolto',
-                          subtitle: 'Tulee myöhemmin',
-                          icon: Icons.build_outlined,
-                          onTap: () {},
-                          disabled: true,
+                          onTap: onSelectAbout,
+                          disabled: false,
                         ),
                       ],
                     );

@@ -1,0 +1,364 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../leaderboard/game_result.dart';
+import '../../games/game_mode.dart';
+import '../dart_throw_source.dart';
+import '../darts_throw.dart';
+import '../throw_history_sheet.dart';
+import '../throw_input_sheet.dart';
+import '../turn_timeline.dart';
+import 'cricket_engine.dart';
+
+class CricketGameView extends StatefulWidget {
+  const CricketGameView({
+    super.key,
+    required this.players,
+    required this.onExit,
+    required this.onFinished,
+    this.throwSource = const NoopDartThrowSource(),
+  });
+
+  static const routeName = '/game/cricket/play';
+
+  final List<String> players;
+  final VoidCallback onExit;
+  final void Function(GameResult result) onFinished;
+  final DartThrowSource throwSource;
+
+  @override
+  State<CricketGameView> createState() => _CricketGameViewState();
+}
+
+class _CricketGameViewState extends State<CricketGameView> {
+  late TurnTimeline _timeline;
+  late CricketState _state;
+  StreamSubscription<DartThrow>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _timeline = TurnTimeline.start(playerCount: widget.players.length);
+    _recompute();
+    _sub = widget.throwSource.stream.listen((t) {
+      if (!mounted) return;
+      _addThrow(t, fromAuto: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    widget.throwSource.dispose();
+    super.dispose();
+  }
+
+  void _recompute() {
+    _state = computeCricket(players: widget.players, timeline: _timeline);
+  }
+
+  void _finishIfWinner() {
+    final winner = _state.winnerIndex;
+    if (winner == null) return;
+    widget.onFinished(
+      GameResult(
+        gameModeId: GameModeId.cricket,
+        winnerName: widget.players[winner],
+        players: widget.players,
+        scores: {
+          'scores': _state.scores,
+          'throws': _timeline.flatThrows.length,
+        },
+        playedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  void _addThrow(DartThrow t, {bool fromAuto = false}) {
+    setState(() {
+      _timeline = _timeline.addThrow(t);
+      _recompute();
+    });
+    _finishIfWinner();
+  }
+
+  void _manualAdd() {
+    ThrowInputSheet.show(context, onPick: (t) => _addThrow(t));
+  }
+
+  void _editThrows() {
+    final flat = _timeline.flatThrows;
+    ThrowHistorySheet.show(
+      context,
+      throws: flat,
+      onReplace: (i, t) {
+        setState(() {
+          _timeline = _timeline.replaceThrowAt(i, t);
+          _recompute();
+        });
+        _finishIfWinner();
+      },
+      onDelete: (i) {
+        setState(() {
+          _timeline = _timeline.deleteThrowAt(i);
+          _recompute();
+        });
+        _finishIfWinner();
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final active = _timeline.activePlayerIndex;
+    final winner = _state.winnerIndex;
+
+    return Scaffold(
+      backgroundColor: cs.surface,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: widget.onExit,
+                    icon: const Icon(Icons.arrow_back, size: 18),
+                    label: const Text('Takaisin'),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'Cricket',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _CricketScoreRow(
+                players: widget.players,
+                scores: _state.scores,
+                activeIndex: active,
+                winnerIndex: winner,
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cs.outline),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        winner != null
+                            ? 'Voittaja: ${widget.players[winner]}'
+                            : 'Vuoro: ${widget.players[active]} (max 3 tikkaa)',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: winner != null ? null : _manualAdd,
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Lisää heitto'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton.icon(
+                            onPressed: _timeline.turns.isEmpty ? null : _editThrows,
+                            icon: const Icon(Icons.edit, size: 18),
+                            label: const Text('Muokkaa'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _MarksTable(marks: _state.marks, players: widget.players),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _timeline.turns.isEmpty
+                                ? null
+                                : () => setState(() {
+                                      _timeline = _timeline.undoLastThrow();
+                                      _recompute();
+                                    }),
+                            icon: const Icon(Icons.undo, size: 18),
+                            label: const Text('Undo'),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Heitot: ${_timeline.flatThrows.length}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CricketScoreRow extends StatelessWidget {
+  const _CricketScoreRow({
+    required this.players,
+    required this.scores,
+    required this.activeIndex,
+    required this.winnerIndex,
+  });
+
+  final List<String> players;
+  final List<int> scores;
+  final int activeIndex;
+  final int? winnerIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: List.generate(players.length, (i) {
+        final isActive = i == activeIndex && winnerIndex == null;
+        final isWinner = winnerIndex == i;
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: i == players.length - 1 ? 0 : 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isWinner
+                    ? cs.primary
+                    : (isActive ? cs.onSurface : cs.outline),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  players[i],
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${scores[i]}',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurface,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _MarksTable extends StatelessWidget {
+  const _MarksTable({required this.marks, required this.players});
+
+  final Map<int, List<int>> marks;
+  final List<String> players;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final rows = <int>[20, 19, 18, 17, 16, 15, 25];
+    return Expanded(
+      child: ListView(
+        children: [
+          for (final n in rows)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: cs.outline),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 54,
+                    child: Text(
+                      n == 25 ? 'BULL' : '$n',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  for (var i = 0; i < players.length; i++)
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _MarksDots(count: marks[n]?[i] ?? 0),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarksDots extends StatelessWidget {
+  const _MarksDots({required this.count});
+  final int count; // 0..3
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dots = List.generate(3, (i) => i < count);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final filled in dots)
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: filled ? cs.primary : cs.outline.withValues(alpha: 0.5),
+            ),
+          ),
+      ],
+    );
+  }
+}
+

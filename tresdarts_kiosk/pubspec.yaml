@@ -37,6 +37,8 @@ dependencies:
   window_manager: ^0.5.1
   wakelock_plus: ^1.4.0
   shared_preferences: ^2.3.3
+  package_info_plus: ^9.0.0
+  just_audio: ^0.9.40
 
 dev_dependencies:
   flutter_test:

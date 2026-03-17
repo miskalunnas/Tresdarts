@@ -24,7 +24,7 @@ class GameMode {
   static const x01 = GameMode(
     id: GameModeId.x01,
     title: 'X01',
-    subtitle: '301 / 501 / 701',
+    subtitle: '101 / 201 / 301 / 501 / 701',
     icon: Icons.exposure_plus_1,
   );
 
