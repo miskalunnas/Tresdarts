@@ -1,87 +1,246 @@
 import 'package:flutter/material.dart';
 
 class HomeMenuView extends StatelessWidget {
-  const HomeMenuView({super.key, required this.onSelectGameModes});
+  const HomeMenuView({
+    super.key,
+    required this.onSelectGameModes,
+    required this.onSelectSettings,
+    required this.onSelectLeaderboard,
+  });
 
   static const routeName = '/menu';
 
   final VoidCallback onSelectGameModes;
+  final VoidCallback onSelectSettings;
+  final VoidCallback onSelectLeaderboard;
+
+  String _two(int n) => n.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final time = '${_two(now.hour)}:${_two(now.minute)}';
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topLeft,
+                  radius: 1.2,
+                  colors: [
+                    cs.primary.withValues(alpha: 0.18),
+                    cs.surface,
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Tresdarts',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                  Row(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tresdarts',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Valitse toiminto',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
                         ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: cs.surfaceContainerHighest.withValues(alpha: 0.6),
+                          border: Border.all(
+                            color: cs.outlineVariant.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.schedule, size: 18),
+                            const SizedBox(width: 10),
+                            Text(
+                              time,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      FilledButton.tonalIcon(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Sulje'),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  FilledButton.tonalIcon(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Sulje'),
+                  const SizedBox(height: 18),
+                  _HeroCTA(
+                    title: 'Darts',
+                    subtitle: 'Pelimuodot, pelin aloitus ja pisteet',
+                    buttonText: 'Aloita',
+                    onPressed: onSelectGameModes,
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        final crossAxisCount = width >= 900 ? 3 : 2;
+                        return GridView.count(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.55,
+                          children: [
+                            _MenuTile(
+                              title: 'Asetukset',
+                              subtitle: 'Näyttö, kiosk ja media',
+                              icon: Icons.settings,
+                              onTap: onSelectSettings,
+                              disabled: false,
+                            ),
+                            _MenuTile(
+                              title: 'Tulokset',
+                              subtitle: 'Leaderboard ja pelihistoriat',
+                              icon: Icons.leaderboard,
+                              onTap: onSelectLeaderboard,
+                              disabled: false,
+                            ),
+                            _MenuTile(
+                              title: 'Tietoja',
+                              subtitle: 'Versio ja laite',
+                              icon: Icons.info_outline,
+                              onTap: () {},
+                              disabled: true,
+                            ),
+                            _MenuTile(
+                              title: 'Huolto',
+                              subtitle: 'Tulee myöhemmin',
+                              icon: Icons.build_outlined,
+                              onTap: () {},
+                              disabled: true,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Valitse toiminto',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroCTA extends StatelessWidget {
+  const _HeroCTA({
+    required this.title,
+    required this.subtitle,
+    required this.buttonText,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final String buttonText;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            cs.primaryContainer.withValues(alpha: 0.55),
+            cs.surfaceContainerHighest.withValues(alpha: 0.35),
+          ],
+        ),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.55)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: cs.primaryContainer.withValues(alpha: 0.9),
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final crossAxisCount = width >= 900
-                        ? 3
-                        : width >= 600
-                            ? 2
-                            : 1;
-                    return GridView.count(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.35,
-                      children: [
-                        _MenuTile(
-                          title: 'Darts',
-                          subtitle: 'Pelimuodot ja pelin aloitus',
-                          icon: Icons.sports,
-                          onTap: onSelectGameModes,
-                        ),
-                        _MenuTile(
-                          title: 'Media',
-                          subtitle: 'Tulee myöhemmin',
-                          icon: Icons.slideshow,
-                          onTap: () {},
-                          disabled: true,
-                        ),
-                        _MenuTile(
-                          title: 'Asetukset',
-                          subtitle: 'Tulee myöhemmin',
-                          icon: Icons.settings,
-                          onTap: () {},
-                          disabled: true,
-                        ),
-                      ],
-                    );
-                  },
-                ),
+              child: Icon(
+                Icons.sports,
+                size: 34,
+                color: cs.onPrimaryContainer,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: onPressed,
+              icon: const Icon(Icons.arrow_forward),
+              label: Text(buttonText),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              ),
+            ),
+          ],
         ),
       ),
     );

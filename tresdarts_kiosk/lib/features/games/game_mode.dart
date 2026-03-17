@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 enum GameModeId {
   x01,
   cricket,
@@ -11,40 +13,47 @@ class GameMode {
     required this.id,
     required this.title,
     required this.subtitle,
+    required this.icon,
   });
 
   final GameModeId id;
   final String title;
   final String subtitle;
+  final IconData icon;
 
   static const x01 = GameMode(
     id: GameModeId.x01,
     title: 'X01',
     subtitle: '301 / 501 / 701',
+    icon: Icons.exposure_plus_1,
   );
 
   static const cricket = GameMode(
     id: GameModeId.cricket,
     title: 'Cricket',
     subtitle: 'Sulje numerot ja kerää pisteet',
+    icon: Icons.sports_cricket,
   );
 
   static const aroundTheClock = GameMode(
     id: GameModeId.aroundTheClock,
     title: 'Around the Clock',
     subtitle: '1 → 20 → Bull',
+    icon: Icons.timelapse,
   );
 
   static const shanghai = GameMode(
     id: GameModeId.shanghai,
     title: 'Shanghai',
     subtitle: 'Osu 1→20, bonus tripla+tupla+sinko',
+    icon: Icons.track_changes,
   );
 
   static const killer = GameMode(
     id: GameModeId.killer,
     title: 'Killer',
     subtitle: 'Eliminaatio ja taktiikka',
+    icon: Icons.gps_fixed,
   );
 
   static const defaults = <GameMode>[

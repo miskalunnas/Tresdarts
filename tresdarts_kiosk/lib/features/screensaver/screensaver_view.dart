@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -17,15 +18,22 @@ class ScreensaverView extends StatefulWidget {
 
 class _ScreensaverViewState extends State<ScreensaverView> {
   static const _playlistAsset = 'assets/config/playlist.json';
+  static const _clockTick = Duration(seconds: 1);
 
   final _pageController = PageController();
   Timer? _timer;
+  Timer? _clockTimer;
   ScreensaverPlaylist? _playlist;
+  DateTime _now = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     unawaited(_load());
+    _clockTimer = Timer.periodic(_clockTick, (_) {
+      if (!mounted) return;
+      setState(() => _now = DateTime.now());
+    });
   }
 
   Future<void> _load() async {
@@ -55,6 +63,7 @@ class _ScreensaverViewState extends State<ScreensaverView> {
   @override
   void dispose() {
     _timer?.cancel();
+    _clockTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -68,15 +77,21 @@ class _ScreensaverViewState extends State<ScreensaverView> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _ScreensaverBackground(playlist: playlist, controller: _pageController),
+          _ScreensaverBackground(
+            playlist: playlist,
+            controller: _pageController,
+          ),
+          _TopClock(now: _now),
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.all(22),
-              child: _TapHint(
-                text: playlist == null
-                    ? 'Ladataan…'
-                    : 'Kosketa näyttöä jatkaaksesi',
+              child: _BottomOverlay(
+                child: _TapHint(
+                  text: playlist == null
+                      ? 'Ladataan…'
+                      : 'Kosketa näyttöä jatkaaksesi',
+                ),
               ),
             ),
           ),
@@ -146,27 +161,139 @@ class _ScreensaverBackground extends StatelessWidget {
       itemCount: images.length,
       itemBuilder: (context, index) {
         final asset = images[index];
-        return Image.asset(
-          asset,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stack) {
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              ),
-              child: Center(
-                child: Text(
-                  'Puuttuva asset:\n$asset',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ),
-            );
-          },
-        );
+        return _KenBurnsAssetImage(asset: asset);
       },
+    );
+  }
+}
+
+class _KenBurnsAssetImage extends StatelessWidget {
+  const _KenBurnsAssetImage({required this.asset});
+
+  final String asset;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1.0, end: 1.06),
+      duration: const Duration(seconds: 12),
+      curve: Curves.easeInOut,
+      builder: (context, scale, child) {
+        return Transform.scale(scale: scale, child: child);
+      },
+      child: Image.asset(
+        asset,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) {
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            child: Center(
+              child: Text(
+                'Puuttuva asset:\n$asset',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TopClock extends StatelessWidget {
+  const _TopClock({required this.now});
+
+  final DateTime now;
+
+  String _two(int n) => n.toString().padLeft(2, '0');
+
+  String get _weekdayFi => switch (now.weekday) {
+        DateTime.monday => 'ma',
+        DateTime.tuesday => 'ti',
+        DateTime.wednesday => 'ke',
+        DateTime.thursday => 'to',
+        DateTime.friday => 'pe',
+        DateTime.saturday => 'la',
+        DateTime.sunday => 'su',
+        _ => '',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final time = '${_two(now.hour)}:${_two(now.minute)}';
+    final date = '$_weekdayFi ${now.day}.${now.month}.${now.year}';
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: _BottomOverlay(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.schedule, size: 18),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  Text(
+                    date,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomOverlay extends StatelessWidget {
+  const _BottomOverlay({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                cs.surfaceContainerHighest.withValues(alpha: 0.62),
+                cs.surface.withValues(alpha: 0.46),
+              ],
+            ),
+            border: Border.all(
+              color: cs.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -178,29 +305,13 @@ class _TapHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.7),
-        border: Border.all(
-          color: Theme.of(context)
-              .colorScheme
-              .outlineVariant
-              .withValues(alpha: 0.6),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.touch_app, size: 18),
-          const SizedBox(width: 10),
-          Text(text, style: Theme.of(context).textTheme.titleSmall),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.touch_app, size: 18),
+        const SizedBox(width: 10),
+        Text(text, style: Theme.of(context).textTheme.titleSmall),
+      ],
     );
   }
 }

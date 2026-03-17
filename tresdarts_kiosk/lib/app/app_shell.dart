@@ -6,6 +6,10 @@ import '../features/games/game_mode.dart';
 import '../features/games/game_mode_view.dart';
 import '../features/menu/home_menu_view.dart';
 import '../features/screensaver/screensaver_view.dart';
+import '../features/leaderboard/game_result.dart';
+import '../features/leaderboard/leaderboard_repository.dart';
+import '../features/leaderboard/leaderboard_view.dart';
+import '../features/settings/settings_view.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -17,6 +21,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   late final IdleController _idleController;
+  final _leaderboardRepo = LeaderboardRepository();
 
   @override
   void initState() {
@@ -44,7 +49,9 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return IdleListener(
       controller: _idleController,
-      child: Navigator(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.none,
+        child: Navigator(
         key: _navigatorKey,
         initialRoute: ScreensaverView.routeName,
         onGenerateRoute: (settings) {
@@ -68,7 +75,26 @@ class _AppShellState extends State<AppShell> {
                 onSelectGameModes: () => _navigatorKey.currentState?.pushNamed(
                   GameModeSelectView.routeName,
                 ),
+                onSelectSettings: () =>
+                    _navigatorKey.currentState?.pushNamed(SettingsView.routeName),
+                onSelectLeaderboard: () => _navigatorKey.currentState?.pushNamed(
+                  LeaderboardView.routeName,
+                ),
               ),
+            );
+          }
+
+          if (name == SettingsView.routeName) {
+            return MaterialPageRoute(
+              settings: const RouteSettings(name: SettingsView.routeName),
+              builder: (_) => const SettingsView(),
+            );
+          }
+
+          if (name == LeaderboardView.routeName) {
+            return MaterialPageRoute(
+              settings: const RouteSettings(name: LeaderboardView.routeName),
+              builder: (_) => const LeaderboardView(),
             );
           }
 
@@ -91,11 +117,23 @@ class _AppShellState extends State<AppShell> {
             final parsedMode = mode is GameMode
                 ? mode
                 : GameMode.tryFromRouteName(name);
+            final gameMode = parsedMode ?? GameMode.x01;
             return MaterialPageRoute(
               settings: RouteSettings(name: name),
-              builder: (_) => GameModeView(
-                mode: parsedMode ?? GameMode.x01,
+              builder: (context) => GameModeView(
+                mode: gameMode,
                 onExit: () => _navigatorKey.currentState?.pop(),
+                onGameEnd: (m) async {
+                  final result = GameResult(
+                    gameModeId: m.id,
+                    winnerName: 'Voittaja',
+                    players: ['Pelaaja 1', 'Pelaaja 2'],
+                    playedAt: DateTime.now(),
+                  );
+                  await _leaderboardRepo.saveResult(result);
+                  if (!context.mounted) return;
+                  _navigatorKey.currentState?.pushNamed(LeaderboardView.routeName);
+                },
               ),
             );
           }
@@ -109,6 +147,7 @@ class _AppShellState extends State<AppShell> {
             ),
           );
         },
+      ),
       ),
     );
   }
