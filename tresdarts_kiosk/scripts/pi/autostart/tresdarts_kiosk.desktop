@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Tresdarts Kiosk
+Comment=Tresdarts kiosk app (Flutter)
+Terminal=false
+X-GNOME-Autostart-enabled=true
+Exec=/bin/bash -lc "$HOME/smart-tres/darts/tresdarts_kiosk/scripts/pi/launch_tresdarts_kiosk.sh"
+
