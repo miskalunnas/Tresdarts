@@ -152,7 +152,7 @@ class _ThrowHistorySheetState extends State<ThrowHistorySheet> {
                           },
                           icon: Icon(Icons.delete_outline, color: cs.onSurfaceVariant),
                         ),
-                      );
+                      ),
                     );
                   },
                 ),
