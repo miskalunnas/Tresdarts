@@ -196,8 +196,17 @@ class _AppShellState extends State<AppShell> {
               builder: (context) => X01PlayerSelectView(
                 startScore: startScore,
                 onBack: () => _navigatorKey.currentState?.pop(),
-                onCreateNew: () =>
-                    _navigatorKey.currentState?.pushNamed(PlayerCreateView.routeName),
+                onCreateNew: () async {
+                  final nav = _navigatorKey.currentState;
+                  if (nav == null) return null;
+                  return await nav.push<PlayerProfile>(MaterialPageRoute<PlayerProfile>(
+                    settings: const RouteSettings(name: PlayerCreateView.routeName),
+                    builder: (_) => PlayerCreateView(
+                      onBack: () => nav.pop(),
+                      onCreated: (p) => nav.pop(p),
+                    ),
+                  ));
+                },
                 onSelected: (players) {
                   final names =
                       players.map((p) => p.name).toList(growable: false);
@@ -228,8 +237,17 @@ class _AppShellState extends State<AppShell> {
                 minPlayers: 1,
                 maxPlayers: 8,
                 onBack: () => _navigatorKey.currentState?.pop(),
-                onCreateNew: () =>
-                    _navigatorKey.currentState?.pushNamed(PlayerCreateView.routeName),
+                onCreateNew: () async {
+                  final nav = _navigatorKey.currentState;
+                  if (nav == null) return null;
+                  return await nav.push<PlayerProfile>(MaterialPageRoute<PlayerProfile>(
+                    settings: const RouteSettings(name: PlayerCreateView.routeName),
+                    builder: (_) => PlayerCreateView(
+                      onBack: () => nav.pop(),
+                      onCreated: (p) => nav.pop(p),
+                    ),
+                  ));
+                },
                 onContinue: (profiles) {
                   final names = profiles.map((p) => p.name).toList(growable: false);
                   final profilesJson = profiles.map((p) => p.toJson()).toList(growable: false);
@@ -305,11 +323,12 @@ class _AppShellState extends State<AppShell> {
           }
 
           if (name == PlayerCreateView.routeName) {
-            return MaterialPageRoute(
+            final nav = _navigatorKey.currentState;
+            return MaterialPageRoute<PlayerProfile>(
               settings: const RouteSettings(name: PlayerCreateView.routeName),
               builder: (_) => PlayerCreateView(
-                onBack: () => _navigatorKey.currentState?.pop(),
-                onCreated: (_) => _navigatorKey.currentState?.pop(),
+                onBack: () => nav?.pop(),
+                onCreated: (p) => nav?.pop(p),
               ),
             );
           }

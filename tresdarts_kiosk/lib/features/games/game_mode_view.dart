@@ -157,7 +157,7 @@ class GameModeSelectView extends StatelessWidget {
                         crossAxisCount: crossAxisCount,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 16,
-                        childAspectRatio: 1.4,
+                        childAspectRatio: 1.5,
                       ),
                       itemCount: modes.length,
                       itemBuilder: (context, index) {
@@ -165,6 +165,7 @@ class GameModeSelectView extends StatelessWidget {
                         return _GameModeCard(
                           mode: mode,
                           onTap: () => onSelectMode(mode),
+                          onRules: () => GameRules.show(context, mode.id),
                         );
                       },
                     );
@@ -180,10 +181,15 @@ class GameModeSelectView extends StatelessWidget {
 }
 
 class _GameModeCard extends StatelessWidget {
-  const _GameModeCard({required this.mode, required this.onTap});
+  const _GameModeCard({
+    required this.mode,
+    required this.onTap,
+    required this.onRules,
+  });
 
   final GameMode mode;
   final VoidCallback onTap;
+  final VoidCallback onRules;
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +232,7 @@ class _GameModeCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Text(
                 mode.title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -242,6 +248,23 @@ class _GameModeCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
+              ),
+              const Spacer(),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    onRules();
+                  },
+                  icon: Icon(Icons.menu_book_outlined, size: 18, color: cs.primary),
+                  label: const Text('Säännöt'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: cs.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
               ),
             ],
           ),

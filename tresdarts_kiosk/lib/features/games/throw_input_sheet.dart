@@ -75,25 +75,18 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: h * 0.85,
+        height: h * 0.88,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: cs.outline.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 12),
+              // Yksi pieni otsikkorivi: vain pisteet / valmis
               Row(
                 children: [
                   Text(
-                    max > 1 ? '${widget.title} (${_picked.length + 1}/$max)' : widget.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    max > 1 ? '${_picked.length + 1}/$max' : 'Pisteet',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ),
@@ -106,19 +99,22 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                     ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(Icons.close, size: 20),
+                    padding: const EdgeInsets.all(8),
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              // Kerroin (S/D/T)
               Row(
                 children: [
                   Expanded(
                     child: SegmentedButton<DartMultiplier>(
                       segments: const [
-                        ButtonSegment(value: DartMultiplier.single, label: Text('Single')),
-                        ButtonSegment(value: DartMultiplier.double, label: Text('Double')),
-                        ButtonSegment(value: DartMultiplier.triple, label: Text('Triple')),
+                        ButtonSegment(value: DartMultiplier.single, label: Text('S')),
+                        ButtonSegment(value: DartMultiplier.double, label: Text('D')),
+                        ButtonSegment(value: DartMultiplier.triple, label: Text('T')),
                       ],
                       selected: {_m},
                       onSelectionChanged: (s) {
@@ -128,7 +124,8 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              // Bullit
               Row(
                 children: [
                   Expanded(
@@ -139,10 +136,10 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                           multiplier: DartMultiplier.single,
                         ),
                       ),
-                      child: const Text('BULL 25'),
+                      child: const Text('25'),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => _pick(
@@ -151,24 +148,25 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                           multiplier: DartMultiplier.single,
                         ),
                       ),
-                      child: const Text('BULL 50'),
+                      child: const Text('50'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              // Kaikki numerot 0–20: 7 saraketta = 3 riviä, ei scrollia
               Expanded(
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1.35,
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1.0,
                   ),
                   itemCount: 21,
                   itemBuilder: (context, index) {
-                    final n = index; // 0..20
+                    final n = index;
                     final selected = _selectedNumber == n;
                     return OutlinedButton(
                       onPressed: () {
@@ -186,10 +184,11 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                         );
                       },
                       style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         backgroundColor:
-                            selected ? cs.primaryContainer.withValues(alpha: 0.25) : null,
+                            selected ? cs.primaryContainer.withValues(alpha: 0.3) : null,
                       ),
-                      child: Text('$n'),
+                      child: Text('$n', style: const TextStyle(fontWeight: FontWeight.w600)),
                     );
                   },
                 ),

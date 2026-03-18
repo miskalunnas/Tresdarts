@@ -16,7 +16,7 @@ class X01PlayerSelectView extends StatefulWidget {
 
   final VoidCallback onBack;
   final void Function(List<PlayerProfile> players) onSelected;
-  final VoidCallback onCreateNew;
+  final Future<PlayerProfile?> Function() onCreateNew;
   final int startScore;
 
   @override

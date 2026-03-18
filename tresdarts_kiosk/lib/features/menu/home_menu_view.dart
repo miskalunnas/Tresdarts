@@ -25,113 +25,119 @@ class HomeMenuView extends StatelessWidget {
     final now = DateTime.now();
     final time = '${_two(now.hour)}:${_two(now.minute)}';
     final cs = Theme.of(context).colorScheme;
+    final tiles = [
+      _MenuTile(
+        title: 'Asetukset',
+        subtitle: 'Näyttö, kiosk ja media',
+        icon: Icons.settings_outlined,
+        onTap: onSelectSettings,
+        disabled: false,
+      ),
+      _MenuTile(
+        title: 'Tulokset',
+        subtitle: 'Leaderboard ja pelihistoriat',
+        icon: Icons.leaderboard_outlined,
+        onTap: onSelectLeaderboard,
+        disabled: false,
+      ),
+      _MenuTile(
+        title: 'Tietoja',
+        subtitle: 'Versio ja laite',
+        icon: Icons.info_outline,
+        onTap: onSelectAbout,
+        disabled: false,
+      ),
+    ];
     return Scaffold(
       backgroundColor: cs.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tresdarts',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: cs.onSurface,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Valitse toiminto',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: cs.outline),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.schedule, size: 16, color: cs.onSurfaceVariant),
-                        const SizedBox(width: 8),
-                        Text(
-                          time,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: cs.onSurface,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth >= 900 ? 3 : 2;
+            return CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tresdarts',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: cs.onSurface,
+                                    ),
                               ),
-                        ),
-                      ],
-                    ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Valitse toiminto',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: cs.outline),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.schedule, size: 16, color: cs.onSurfaceVariant),
+                                const SizedBox(width: 8),
+                                Text(
+                                  time,
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: cs.onSurface,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          OutlinedButton.icon(
+                            onPressed: onClose,
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text('Sulje'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      _HeroCTA(
+                        title: 'Darts',
+                        subtitle: '',
+                        buttonText: 'Pelaa',
+                        onPressed: onSelectGameModes,
+                      ),
+                      const SizedBox(height: 24),
+                    ]),
                   ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: onClose,
-                    icon: const Icon(Icons.close, size: 18),
-                    label: const Text('Sulje'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              _HeroCTA(
-                title: 'Darts',
-                subtitle: '',
-                buttonText: 'Aloita',
-                onPressed: onSelectGameModes,
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final crossAxisCount = width >= 900 ? 3 : 2;
-                    return GridView.count(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.5,
-                      children: [
-                        _MenuTile(
-                          title: 'Asetukset',
-                          subtitle: 'Näyttö, kiosk ja media',
-                          icon: Icons.settings_outlined,
-                          onTap: onSelectSettings,
-                          disabled: false,
-                        ),
-                        _MenuTile(
-                          title: 'Tulokset',
-                          subtitle: 'Leaderboard ja pelihistoriat',
-                          icon: Icons.leaderboard_outlined,
-                          onTap: onSelectLeaderboard,
-                          disabled: false,
-                        ),
-                        _MenuTile(
-                          title: 'Tietoja',
-                          subtitle: 'Versio ja laite',
-                          icon: Icons.info_outline,
-                          onTap: onSelectAbout,
-                          disabled: false,
-                        ),
-                      ],
-                    );
-                  },
                 ),
-              ),
-            ],
-          ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.5,
+                    ),
+                    delegate: SliverChildListDelegate(tiles),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

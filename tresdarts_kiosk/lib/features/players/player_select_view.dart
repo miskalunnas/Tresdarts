@@ -20,7 +20,8 @@ class PlayerSelectView extends StatefulWidget {
   final int maxPlayers;
   final VoidCallback onBack;
   final void Function(List<PlayerProfile> players) onContinue;
-  final VoidCallback onCreateNew;
+  /// Creates a new user; returns the created profile so it can be auto-selected.
+  final Future<PlayerProfile?> Function() onCreateNew;
 
   @override
   State<PlayerSelectView> createState() => _PlayerSelectViewState();
@@ -95,6 +96,14 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
         _selected.add(p);
       }
     });
+  }
+
+  Future<void> _handleCreateNew() async {
+    if (_selected.length >= widget.maxPlayers) return;
+    final profile = await widget.onCreateNew();
+    if (profile != null && mounted && _selected.length < widget.maxPlayers) {
+      setState(() => _selected.add(profile));
+    }
   }
 
   void _addGuest() {
@@ -345,7 +354,9 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: widget.onCreateNew,
+                      onPressed: _selected.length >= widget.maxPlayers
+                          ? null
+                          : _handleCreateNew,
                       icon: const Icon(Icons.person_add, size: 18),
                       label: const Text('Uusi käyttäjä'),
                     ),
