@@ -22,5 +22,9 @@ if [ ! -x "$RELEASE/tresdarts_kiosk" ]; then
   exit 1
 fi
 
-echo "==> Käynnistetään..."
+echo "==> Sammutetaan vanha kiosk (jos käynnissä)..."
+pkill -x tresdarts_kiosk 2>/dev/null || true
+sleep 1
+
+echo "==> Käynnistetään uusi versio..."
 exec "$RELEASE/tresdarts_kiosk"
