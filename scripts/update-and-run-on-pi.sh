@@ -18,8 +18,16 @@ flutter pub get
 flutter build linux --target-platform linux-arm64
 
 RELEASE="$REPO_ROOT/tresdarts_kiosk/build/linux/arm64/release"
-if [ ! -x "$RELEASE/tresdarts_kiosk" ]; then
-  echo "Virhe: binääriä ei löydy: $RELEASE/tresdarts_kiosk"
+BUNDLE="$RELEASE/bundle"
+APP_BIN="$BUNDLE/tresdarts_kiosk"
+if [ ! -x "$APP_BIN" ]; then
+  APP_BIN="$RELEASE/tresdarts_kiosk"
+  APP_DIR="$RELEASE"
+else
+  APP_DIR="$BUNDLE"
+fi
+if [ ! -x "$APP_BIN" ]; then
+  echo "Virhe: binääriä ei löydy: $RELEASE/tresdarts_kiosk eikä $BUNDLE/tresdarts_kiosk"
   exit 1
 fi
 
@@ -29,5 +37,5 @@ sleep 1
 
 echo "==> Käynnistetään uusi versio Pi:n näytölle (DISPLAY=:0)..."
 export DISPLAY=:0
-nohup "$RELEASE/tresdarts_kiosk" > /tmp/tresdarts_kiosk.log 2>&1 &
+( cd "$APP_DIR" && nohup ./tresdarts_kiosk > /tmp/tresdarts_kiosk.log 2>&1 & )
 echo "Kiosk käynnistetty. Lokit: /tmp/tresdarts_kiosk.log"
