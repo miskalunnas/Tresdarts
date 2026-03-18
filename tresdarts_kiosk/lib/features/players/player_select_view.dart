@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/osk/osk.dart';
+import '../../core/keyboard/kiosk_text_field.dart';
 import 'player_profile.dart';
 import 'player_repository.dart';
 
@@ -124,9 +124,11 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
                 ],
               ),
               const SizedBox(height: 16),
-              TextField(
+              KioskTextField(
                 controller: _searchController,
-                onTap: Osk.maybeShow,
+                title: 'Haku',
+                hintText: 'Hae pelaajaa...',
+                maxLength: 30,
                 decoration: InputDecoration(
                   hintText: 'Hae pelaajaa...',
                   prefixIcon: const Icon(Icons.search),

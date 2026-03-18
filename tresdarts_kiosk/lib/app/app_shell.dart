@@ -6,6 +6,7 @@ import '../features/games/game_mode.dart';
 import '../features/games/game_mode_view.dart';
 import '../features/games/game_start_view.dart';
 import '../features/games/x01/x01_game_view.dart';
+import '../features/games/x01/x01_config_view.dart';
 import '../features/games/x01/x01_player_select_view.dart';
 import '../features/games/x01/x01_setup_view.dart';
 import '../features/games/cricket/cricket_game_view.dart';
@@ -68,22 +69,25 @@ class _AppShellState extends State<AppShell> {
       controller: _idleController,
       child: MouseRegion(
         cursor: SystemMouseCursors.none,
-        child: Navigator(
-        key: _navigatorKey,
-        initialRoute: ScreensaverView.routeName,
-        onGenerateRoute: (settings) {
-          final name = settings.name ?? ScreensaverView.routeName;
+        child: Listener(
+          // Prevent hover from re-enabling cursor on some platforms.
+          onPointerHover: (_) {},
+          child: Navigator(
+            key: _navigatorKey,
+            initialRoute: ScreensaverView.routeName,
+            onGenerateRoute: (settings) {
+              final name = settings.name ?? ScreensaverView.routeName;
 
-          if (name == ScreensaverView.routeName) {
-            return MaterialPageRoute(
-              settings: const RouteSettings(name: ScreensaverView.routeName),
-              builder: (_) => ScreensaverView(
-                onTap: () => _navigatorKey.currentState?.pushReplacementNamed(
-                  HomeMenuView.routeName,
-                ),
-              ),
-            );
-          }
+              if (name == ScreensaverView.routeName) {
+                return MaterialPageRoute(
+                  settings: const RouteSettings(name: ScreensaverView.routeName),
+                  builder: (_) => ScreensaverView(
+                    onTap: () => _navigatorKey.currentState?.pushReplacementNamed(
+                      HomeMenuView.routeName,
+                    ),
+                  ),
+                );
+              }
 
           if (name == HomeMenuView.routeName) {
             return MaterialPageRoute(
@@ -135,8 +139,7 @@ class _AppShellState extends State<AppShell> {
                 modes: GameMode.defaults,
                 onSelectMode: (mode) {
                   if (mode.id == GameModeId.x01) {
-                    _navigatorKey.currentState
-                        ?.pushNamed(X01PlayerSelectView.routeName);
+                    _navigatorKey.currentState?.pushNamed(X01ConfigView.routeName);
                     return;
                   }
                   _navigatorKey.currentState?.pushNamed(
@@ -148,10 +151,33 @@ class _AppShellState extends State<AppShell> {
             );
           }
 
+          if (name == X01ConfigView.routeName) {
+            return MaterialPageRoute(
+              settings: const RouteSettings(name: X01ConfigView.routeName),
+              builder: (_) => X01ConfigView(
+                onBack: () => _navigatorKey.currentState?.pop(),
+                onContinue: (startScore) {
+                  _navigatorKey.currentState?.pushReplacementNamed(
+                    X01PlayerSelectView.routeName,
+                    arguments: <String, dynamic>{'startScore': startScore},
+                  );
+                },
+              ),
+            );
+          }
+
           if (name == X01PlayerSelectView.routeName) {
+            final args = settings.arguments;
+            var startScore = 301;
+            if (args is Map) {
+              final s = args['startScore'];
+              if (s is int) startScore = s;
+              if (s is num) startScore = s.toInt();
+            }
             return MaterialPageRoute(
               settings: const RouteSettings(name: X01PlayerSelectView.routeName),
               builder: (context) => X01PlayerSelectView(
+                startScore: startScore,
                 onBack: () => _navigatorKey.currentState?.pop(),
                 onCreateNew: () =>
                     _navigatorKey.currentState?.pushNamed(PlayerCreateView.routeName),
@@ -163,6 +189,7 @@ class _AppShellState extends State<AppShell> {
                   _navigatorKey.currentState?.pushReplacementNamed(
                     X01SetupView.routeName,
                     arguments: <String, dynamic>{
+                      'startScore': startScore,
                       'names': names,
                       'profiles': profilesJson,
                     },
@@ -302,7 +329,11 @@ class _AppShellState extends State<AppShell> {
             final args = settings.arguments;
             List<String> names = const ['Pelaaja 1', 'Pelaaja 2'];
             List<PlayerProfile> profiles = const [];
+            var startScore = 301;
             if (args is Map) {
+              final s = args['startScore'];
+              if (s is int) startScore = s;
+              if (s is num) startScore = s.toInt();
               final n = args['names'];
               if (n is List) {
                 names = n.whereType<String>().toList();
@@ -321,6 +352,7 @@ class _AppShellState extends State<AppShell> {
               builder: (context) => X01SetupView(
                 players: names,
                 profiles: profiles,
+                setupStartScore: startScore,
                 onBack: () => _navigatorKey.currentState?.pop(),
                 onStart: (setup, {entrySongsEnabled = false, List<PlayerProfile>? profiles}) {
                   if (entrySongsEnabled && profiles != null && profiles.isNotEmpty) {
@@ -590,16 +622,17 @@ class _AppShellState extends State<AppShell> {
             );
           }
 
-          return MaterialPageRoute(
-            settings: const RouteSettings(name: ScreensaverView.routeName),
-            builder: (_) => ScreensaverView(
-              onTap: () => _navigatorKey.currentState?.pushReplacementNamed(
-                HomeMenuView.routeName,
-              ),
-            ),
-          );
-        },
-      ),
+              return MaterialPageRoute(
+                settings: const RouteSettings(name: ScreensaverView.routeName),
+                builder: (_) => ScreensaverView(
+                  onTap: () => _navigatorKey.currentState?.pushReplacementNamed(
+                    HomeMenuView.routeName,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

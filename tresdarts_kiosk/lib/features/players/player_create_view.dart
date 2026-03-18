@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../core/osk/osk.dart';
+import '../../core/keyboard/kiosk_text_field.dart';
 import 'player_profile.dart';
 import 'player_repository.dart';
 
@@ -111,24 +111,18 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextField(
+                    KioskTextField(
                       controller: _name,
                       enabled: !_saving,
-                      onTap: Osk.maybeShow,
-                      decoration: const InputDecoration(
-                        labelText: 'Nimi',
-                        border: OutlineInputBorder(),
-                      ),
+                      title: 'Nimi',
+                      maxLength: 30,
                     ),
                     const SizedBox(height: 12),
-                    TextField(
+                    KioskTextField(
                       controller: _song,
                       enabled: !_saving,
-                      onTap: Osk.maybeShow,
-                      decoration: const InputDecoration(
-                        labelText: 'Sisääntulo biisi (vapaaehtoinen)',
-                        border: OutlineInputBorder(),
-                      ),
+                      title: 'Sisääntulo biisi (vapaaehtoinen)',
+                      maxLength: 40,
                     ),
                     const SizedBox(height: 12),
                     Row(

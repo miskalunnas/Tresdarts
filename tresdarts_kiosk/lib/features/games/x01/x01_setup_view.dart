@@ -9,6 +9,7 @@ class X01SetupView extends StatefulWidget {
     super.key,
     required this.players,
     required this.profiles,
+    this.setupStartScore,
     required this.onBack,
     required this.onStart,
   });
@@ -17,6 +18,7 @@ class X01SetupView extends StatefulWidget {
 
   final List<String> players;
   final List<PlayerProfile> profiles;
+  final int? setupStartScore;
   final VoidCallback onBack;
   final void Function(X01Setup setup, {bool entrySongsEnabled, List<PlayerProfile>? profiles}) onStart;
 
@@ -27,7 +29,7 @@ class X01SetupView extends StatefulWidget {
 class _X01SetupViewState extends State<X01SetupView> {
   static const _startOptions = <int>[101, 201, 301, 501, 701];
 
-  int _startScore = 301;
+  late int _startScore;
   bool _entrySongsEnabled = true;
 
   bool get _hasAnyEntrySong =>
@@ -43,6 +45,12 @@ class _X01SetupViewState extends State<X01SetupView> {
       entrySongsEnabled: _entrySongsEnabled && _hasAnyEntrySong,
       profiles: widget.profiles,
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startScore = widget.setupStartScore ?? 301;
   }
 
   @override
