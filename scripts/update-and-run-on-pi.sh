@@ -26,5 +26,7 @@ echo "==> Sammutetaan vanha kiosk (jos käynnissä)..."
 pkill -x tresdarts_kiosk 2>/dev/null || true
 sleep 1
 
-echo "==> Käynnistetään uusi versio..."
-exec "$RELEASE/tresdarts_kiosk"
+echo "==> Käynnistetään uusi versio Pi:n näytölle (DISPLAY=:0)..."
+export DISPLAY=:0
+nohup "$RELEASE/tresdarts_kiosk" > /tmp/tresdarts_kiosk.log 2>&1 &
+echo "Kiosk käynnistetty. Lokit: /tmp/tresdarts_kiosk.log"
