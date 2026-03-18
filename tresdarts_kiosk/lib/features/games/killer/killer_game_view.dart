@@ -11,6 +11,9 @@ import '../throw_input_sheet.dart';
 import '../turn_timeline.dart';
 import '../player_throw_panel.dart';
 import '../confirm_exit_game_dialog.dart';
+import '../win_continue_dialog.dart';
+import '../turn_order_spinner_dialog.dart';
+import '../../leaderboard/leaderboard_repository.dart';
 import 'killer_engine.dart';
 import 'killer_setup_view.dart';
 
@@ -40,10 +43,46 @@ class _KillerGameViewState extends State<KillerGameView> {
   late TurnTimeline _timeline;
   late KillerState _state;
   StreamSubscription<DartThrow>? _sub;
+  int? _firstWinnerIndex;
+  bool _playOut = false;
+  bool _winDialogOpen = false;
+  final Set<int> _frozenPlayers = {};
+  final _leaderboardRepo = LeaderboardRepository();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final order = await showTurnOrderSpinnerDialog(
+        context,
+        players: widget.players,
+      );
+      if (!mounted) return;
+      if (order != null) {
+        final oldPlayers = widget.players;
+        final oldNumbers = widget.setup.playerNumbers;
+        final nextNumbers = <int, int>{};
+        for (var newIndex = 0; newIndex < order.length; newIndex++) {
+          final name = order[newIndex];
+          final oldIndex = oldPlayers.indexOf(name);
+          if (oldIndex >= 0) {
+            nextNumbers[newIndex] = oldNumbers[oldIndex] ?? 0;
+          }
+        }
+        Navigator.of(context).pushReplacementNamed(
+          KillerGameView.routeName,
+          arguments: <String, dynamic>{
+            'players': order,
+            'setup': <String, dynamic>{
+              'numbers': nextNumbers.map((k, v) => MapEntry('$k', v)),
+              'lives': widget.setup.lives,
+              'killsToBecomeKiller': widget.setup.killsToBecomeKiller,
+            },
+          },
+        );
+      }
+    });
     _timeline = TurnTimeline.start(playerCount: widget.players.length);
     _recompute();
     _sub = widget.throwSource.stream.listen((t) {
@@ -67,9 +106,35 @@ class _KillerGameViewState extends State<KillerGameView> {
     );
   }
 
-  void _finishIfWinner() {
+  bool _isEliminated(int idx) => _state.lives[idx] <= 0;
+
+  void _skipFrozenTurnsIfNeeded() {
+    var guard = 0;
+    while (_playOut &&
+        _timeline.turns.isNotEmpty &&
+        _frozenPlayers.contains(_timeline.activePlayerIndex) &&
+        guard < widget.players.length + 2) {
+      _timeline = _timeline.addThrow(
+        const DartThrow(segment: DartSegment.miss, multiplier: DartMultiplier.single),
+      );
+      _timeline = _timeline.addThrow(
+        const DartThrow(segment: DartSegment.miss, multiplier: DartMultiplier.single),
+      );
+      _timeline = _timeline.addThrow(
+        const DartThrow(segment: DartSegment.miss, multiplier: DartMultiplier.single),
+      );
+      _recompute();
+      guard++;
+    }
+  }
+
+  Future<void> _handleFirstWinIfNeeded() async {
+    if (_firstWinnerIndex != null) return;
     final winner = _state.winnerIndex;
     if (winner == null) return;
+    if (_winDialogOpen) return;
+    _winDialogOpen = true;
+
     final pd = computePointsAndDartsByPlayer(_timeline);
     final pointsByPlayer = <String, int>{};
     final dartsByPlayer = <String, int>{};
@@ -77,30 +142,64 @@ class _KillerGameViewState extends State<KillerGameView> {
       pointsByPlayer[widget.players[i]] = pd.points[i] ?? 0;
       dartsByPlayer[widget.players[i]] = pd.darts[i] ?? 0;
     }
-    widget.onFinished(
-      GameResult(
-        gameModeId: GameModeId.killer,
-        winnerName: widget.players[winner],
-        players: widget.players,
-        scores: {
-          'lives': _state.lives,
-          'kills': _state.kills,
-          'numbers': _state.numbers,
-          'throws': _timeline.flatThrows.length,
-          'dartPointsByPlayer': pointsByPlayer,
-          'dartCountByPlayer': dartsByPlayer,
-        },
-        playedAt: DateTime.now(),
-      ),
+
+    final result = GameResult(
+      gameModeId: GameModeId.killer,
+      winnerName: widget.players[winner],
+      players: widget.players,
+      scores: {
+        'lives': _state.lives,
+        'kills': _state.kills,
+        'numbers': _state.numbers,
+        'throws': _timeline.flatThrows.length,
+        'dartPointsByPlayer': pointsByPlayer,
+        'dartCountByPlayer': dartsByPlayer,
+      },
+      playedAt: DateTime.now(),
     );
+
+    final action = await showWinContinueDialog(
+      context,
+      winnerName: widget.players[winner],
+    );
+    if (!mounted) return;
+    _winDialogOpen = false;
+    if (action == null) return;
+
+    if (action == WinContinueAction.endGame) {
+      widget.onFinished(result);
+      return;
+    }
+
+    await _leaderboardRepo.saveResult(result);
+    if (!mounted) return;
+    setState(() {
+      _firstWinnerIndex = winner;
+      _playOut = true;
+      _frozenPlayers.add(winner);
+      for (var i = 0; i < widget.players.length; i++) {
+        if (_isEliminated(i)) _frozenPlayers.add(i);
+      }
+      _skipFrozenTurnsIfNeeded();
+    });
   }
 
   void _addThrow(DartThrow t) {
+    if (_playOut && _frozenPlayers.contains(_timeline.activePlayerIndex)) {
+      setState(() => _skipFrozenTurnsIfNeeded());
+      return;
+    }
     setState(() {
       _timeline = _timeline.addThrow(t);
       _recompute();
+      if (_playOut) {
+        for (var i = 0; i < widget.players.length; i++) {
+          if (_isEliminated(i)) _frozenPlayers.add(i);
+        }
+        _skipFrozenTurnsIfNeeded();
+      }
     });
-    _finishIfWinner();
+    _handleFirstWinIfNeeded();
   }
 
   void _manualAdd() {
@@ -111,7 +210,7 @@ class _KillerGameViewState extends State<KillerGameView> {
       onPickMany: (list) {
         for (final t in list) {
           _addThrow(t);
-          if (_state.winnerIndex != null) break;
+          if (!_playOut && _state.winnerIndex != null) break;
         }
       },
     );
@@ -126,15 +225,31 @@ class _KillerGameViewState extends State<KillerGameView> {
         setState(() {
           _timeline = _timeline.replaceThrowAt(i, t);
           _recompute();
+          if (_playOut) {
+            _frozenPlayers.clear();
+            if (_firstWinnerIndex != null) _frozenPlayers.add(_firstWinnerIndex!);
+            for (var p = 0; p < widget.players.length; p++) {
+              if (_isEliminated(p)) _frozenPlayers.add(p);
+            }
+            _skipFrozenTurnsIfNeeded();
+          }
         });
-        _finishIfWinner();
+        _handleFirstWinIfNeeded();
       },
       onDelete: (i) {
         setState(() {
           _timeline = _timeline.deleteThrowAt(i);
           _recompute();
+          if (_playOut) {
+            _frozenPlayers.clear();
+            if (_firstWinnerIndex != null) _frozenPlayers.add(_firstWinnerIndex!);
+            for (var p = 0; p < widget.players.length; p++) {
+              if (_isEliminated(p)) _frozenPlayers.add(p);
+            }
+            _skipFrozenTurnsIfNeeded();
+          }
         });
-        _finishIfWinner();
+        _handleFirstWinIfNeeded();
       },
     );
   }

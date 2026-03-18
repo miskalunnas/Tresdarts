@@ -483,7 +483,10 @@ class _AppShellState extends State<AppShell> {
                 onFinished: (result) async {
                   await _leaderboardRepo.saveResult(result);
                   if (!context.mounted) return;
-                  _navigatorKey.currentState?.pushNamed(LeaderboardView.routeName);
+                  _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    LeaderboardView.routeName,
+                    (route) => false,
+                  );
                 },
               ),
             );
@@ -503,7 +506,10 @@ class _AppShellState extends State<AppShell> {
                 onFinished: (result) async {
                   await _leaderboardRepo.saveResult(result);
                   if (!context.mounted) return;
-                  _navigatorKey.currentState?.pushNamed(LeaderboardView.routeName);
+                  _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    LeaderboardView.routeName,
+                    (route) => false,
+                  );
                 },
               ),
             );
@@ -523,7 +529,10 @@ class _AppShellState extends State<AppShell> {
                 onFinished: (result) async {
                   await _leaderboardRepo.saveResult(result);
                   if (!context.mounted) return;
-                  _navigatorKey.currentState?.pushNamed(LeaderboardView.routeName);
+                  _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    LeaderboardView.routeName,
+                    (route) => false,
+                  );
                 },
               ),
             );
@@ -574,7 +583,10 @@ class _AppShellState extends State<AppShell> {
                 onFinished: (result) async {
                   await _leaderboardRepo.saveResult(result);
                   if (!context.mounted) return;
-                  _navigatorKey.currentState?.pushNamed(LeaderboardView.routeName);
+                  _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    LeaderboardView.routeName,
+                    (route) => false,
+                  );
                 },
               ),
             );
@@ -626,7 +638,10 @@ class _AppShellState extends State<AppShell> {
                     await _playerRepo.upsertByName(name: trimmed);
                   }
                   if (!context.mounted) return;
-                  _navigatorKey.currentState?.pushNamed(LeaderboardView.routeName);
+                  _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    LeaderboardView.routeName,
+                    (route) => false,
+                  );
                 },
               ),
             );

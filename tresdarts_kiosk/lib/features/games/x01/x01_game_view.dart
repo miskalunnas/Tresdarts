@@ -6,8 +6,12 @@ import '../game_rules.dart';
 import '../throw_input_sheet.dart';
 import '../darts_throw.dart';
 import '../confirm_exit_game_dialog.dart';
+import '../win_continue_dialog.dart';
+import '../turn_order_spinner_dialog.dart';
+import '../../leaderboard/leaderboard_repository.dart';
 import 'x01_checkout.dart';
 import 'x01_game.dart';
+import 'x01_setup_view.dart';
 
 class X01GameView extends StatefulWidget {
   const X01GameView({
@@ -32,10 +36,32 @@ class X01GameView extends StatefulWidget {
 class _X01GameViewState extends State<X01GameView> {
   late X01GameState _state;
   final List<DartThrow> _throws = [];
+  int? _firstWinnerIndex;
+  bool _playOut = false;
+  bool _winDialogOpen = false;
+  final Set<int> _frozenPlayers = {};
+  late List<int> _playOutScores;
+  int _playOutActive = 0;
+  int _playOutDartsInTurn = 0;
+  final _leaderboardRepo = LeaderboardRepository();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final order = await showTurnOrderSpinnerDialog(
+        context,
+        players: widget.players,
+      );
+      if (!mounted) return;
+      if (order != null) {
+        Navigator.of(context).pushReplacementNamed(
+          X01GameView.routeName,
+          arguments: X01Setup(startScore: widget.startScore, players: order),
+        );
+      }
+    });
     _state = X01GameState.start(
       startScore: widget.startScore,
       players: widget.players,
@@ -48,26 +74,131 @@ class _X01GameViewState extends State<X01GameView> {
   }
 
   void _applyThrow(DartThrow t) {
+    if (_playOut) {
+      _applyThrowPlayOut(t);
+      return;
+    }
+
     if (_state.isFinished) return;
     setState(() {
       _throws.add(t);
       _state = _state.applyThrow(t.points);
     });
     if (_state.isFinished) {
-      final winnerIndex = _state.winnerIndex!;
-      final pd = _pointsAndDartsFromX01(_state);
-      widget.onFinished(
-        GameResult(
-          gameModeId: GameModeId.x01,
-          winnerName: _state.players[winnerIndex],
-          players: _state.players,
-          scores: {
-            'startScore': _state.startScore,
-            'throws': _throws.length,
-            'dartPointsByPlayer': pd.pointsByName,
-            'dartCountByPlayer': pd.dartsByName,
-          },
-          playedAt: DateTime.now(),
+      _handleFirstWinX01();
+    }
+  }
+
+  Future<void> _handleFirstWinX01() async {
+    final winnerIndex = _state.winnerIndex;
+    if (winnerIndex == null) return;
+    if (_firstWinnerIndex != null) return;
+    if (_winDialogOpen) return;
+    _winDialogOpen = true;
+
+    final pd = _pointsAndDartsFromX01(_state);
+    final result = GameResult(
+      gameModeId: GameModeId.x01,
+      winnerName: _state.players[winnerIndex],
+      players: _state.players,
+      scores: {
+        'startScore': _state.startScore,
+        'throws': _throws.length,
+        'dartPointsByPlayer': pd.pointsByName,
+        'dartCountByPlayer': pd.dartsByName,
+      },
+      playedAt: DateTime.now(),
+    );
+
+    final action = await showWinContinueDialog(
+      context,
+      winnerName: _state.players[winnerIndex],
+    );
+    if (!mounted) return;
+    _winDialogOpen = false;
+    if (action == null) return;
+
+    if (action == WinContinueAction.endGame) {
+      widget.onFinished(result);
+      return;
+    }
+
+    await _leaderboardRepo.saveResult(result);
+    if (!mounted) return;
+
+    setState(() {
+      _firstWinnerIndex = winnerIndex;
+      _playOut = true;
+      _frozenPlayers.add(winnerIndex);
+      _playOutScores = [..._state.scores];
+      // Pick next active player after winner, skipping frozen.
+      _playOutActive = _nextNonFrozen((winnerIndex + 1) % _state.players.length) ?? winnerIndex;
+      _playOutDartsInTurn = 0;
+    });
+  }
+
+  int? _nextNonFrozen(int start) {
+    if (_state.players.isEmpty) return null;
+    var idx = start;
+    for (var i = 0; i < _state.players.length; i++) {
+      if (!_frozenPlayers.contains(idx)) return idx;
+      idx = (idx + 1) % _state.players.length;
+    }
+    return null;
+  }
+
+  void _applyThrowPlayOut(DartThrow t) {
+    if (_frozenPlayers.contains(_playOutActive)) {
+      setState(() {
+        final next = _nextNonFrozen((_playOutActive + 1) % _state.players.length);
+        if (next != null) _playOutActive = next;
+        _playOutDartsInTurn = 0;
+      });
+      return;
+    }
+
+    final idx = _playOutActive;
+    final before = _playOutScores[idx];
+    final points = t.points.clamp(0, 180);
+    final after = before - points;
+    final isBust = after < 0;
+    final didWin = !isBust && after == 0;
+    final endsTurn = didWin || isBust || _playOutDartsInTurn >= 2;
+
+    setState(() {
+      _throws.add(t);
+      _playOutScores[idx] = isBust ? before : after;
+
+      if (didWin) {
+        _frozenPlayers.add(idx);
+      }
+
+      if (endsTurn) {
+        _playOutDartsInTurn = 0;
+        final next = _nextNonFrozen((idx + 1) % _state.players.length);
+        if (next != null) _playOutActive = next;
+      } else {
+        _playOutDartsInTurn = (_playOutDartsInTurn + 1).clamp(0, 2);
+      }
+    });
+
+    final remaining = _state.players.length - _frozenPlayers.length;
+    if (remaining <= 1 && mounted) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Loppupeli ohi'),
+          content: const Text('Loppupelin tuloksia ei tallenneta.'),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                widget.onExit();
+              },
+              child: const Text('Palaa valikkoon'),
+            ),
+          ],
         ),
       );
     }
@@ -90,19 +221,18 @@ class _X01GameViewState extends State<X01GameView> {
   }
 
   void _addThrow() {
-    final remaining = _state.scores[_state.activePlayerIndex];
-    final checkout = remaining >= 2 && remaining <= 170
-        ? x01CheckoutSuggestion[remaining]
-        : null;
+    final activeIdx = _playOut ? _playOutActive : _state.activePlayerIndex;
+    final remaining = _playOut ? _playOutScores[activeIdx] : _state.scores[activeIdx];
+    final checkout = suggestX01Checkout(remaining);
     ThrowInputSheet.show(
       context,
       title: 'Lisää heitto',
-      maxPicks: 3 - _state.dartsInTurn,
+      maxPicks: _playOut ? (3 - _playOutDartsInTurn) : (3 - _state.dartsInTurn),
       onPick: _applyThrow,
       onPickMany: (list) {
         for (final t in list) {
           _applyThrow(t);
-          if (_state.isFinished) break;
+          if (!_playOut && _state.isFinished) break;
         }
       },
       remainingPoints: remaining,
@@ -113,8 +243,8 @@ class _X01GameViewState extends State<X01GameView> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final active = _state.activePlayerIndex;
-    final winner = _state.winnerIndex;
+    final active = _playOut ? _playOutActive : _state.activePlayerIndex;
+    final winner = _playOut ? _firstWinnerIndex : _state.winnerIndex;
 
     return Scaffold(
       backgroundColor: cs.surface,

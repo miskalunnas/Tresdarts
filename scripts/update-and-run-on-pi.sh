@@ -37,5 +37,6 @@ sleep 1
 
 echo "==> Käynnistetään uusi versio Pi:n näytölle (DISPLAY=:0)..."
 export DISPLAY=:0
-( cd "$APP_DIR" && nohup ./tresdarts_kiosk > /tmp/tresdarts_kiosk.log 2>&1 & )
+export NO_AT_BRIDGE=1
+( cd "$APP_DIR" && nohup env DISPLAY=:0 NO_AT_BRIDGE=1 ./tresdarts_kiosk >> /tmp/tresdarts_kiosk.log 2>&1 & )
 echo "Kiosk käynnistetty. Lokit: /tmp/tresdarts_kiosk.log"

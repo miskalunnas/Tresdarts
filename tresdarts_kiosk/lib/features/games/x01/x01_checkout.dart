@@ -1,168 +1,64 @@
-/// One suggested checkout per score 2–170 for X01.
-/// Bogey numbers (159, 162, 163, 165, 166, 168, 169) have no 3-dart finish and are omitted.
-Map<int, String> get x01CheckoutSuggestion => _x01CheckoutSuggestion;
+import '../darts_throw.dart';
 
-final Map<int, String> _x01CheckoutSuggestion = {
-  2: 'D1',
-  3: 'S1 D1',
-  4: 'D2',
-  5: 'S1 D2',
-  6: 'D3',
-  7: 'S3 D2',
-  8: 'D4',
-  9: 'S1 D4',
-  10: 'D5',
-  11: 'S3 D4',
-  12: 'D6',
-  13: 'S5 D4',
-  14: 'D7',
-  15: 'S7 D4',
-  16: 'D8',
-  17: 'S1 D8',
-  18: 'D9',
-  19: 'S3 D8',
-  20: 'D10',
-  21: 'S5 D8',
-  22: 'D11',
-  23: 'S7 D8',
-  24: 'D12',
-  25: 'S9 D8',
-  26: 'D13',
-  27: 'S19 D4',
-  28: 'D14',
-  29: 'S13 D8',
-  30: 'D15',
-  31: 'S7 D12',
-  32: 'D16',
-  33: 'S1 D16',
-  34: 'D17',
-  35: 'S3 D16',
-  36: 'D18',
-  37: 'S5 D16',
-  38: 'D19',
-  39: 'S7 D16',
-  40: 'D20',
-  41: 'S9 D16',
-  42: 'S10 D16',
-  43: 'S3 D20',
-  44: 'S4 D20',
-  45: 'S13 D16',
-  46: 'S6 D20',
-  47: 'S7 D20',
-  48: 'S8 D20',
-  49: 'S17 D16',
-  50: 'S18 D16',
-  51: 'S19 D16',
-  52: 'S20 D16',
-  53: 'S13 D20',
-  54: 'S14 D20',
-  55: 'S15 D20',
-  56: 'S16 D20',
-  57: 'S17 D20',
-  58: 'S18 D20',
-  59: 'S19 D20',
-  60: 'S20 D20',
-  61: 'T15 D8',
-  62: 'T10 D16',
-  63: 'T13 D12',
-  64: 'T16 D8',
-  65: 'T15 D10',
-  66: 'T10 D18',
-  67: 'T17 D8',
-  68: 'T20 D4',
-  69: 'T19 D6',
-  70: 'T10 D20',
-  71: 'T13 D16',
-  72: 'T16 D12',
-  73: 'T19 D8',
-  74: 'T14 D16',
-  75: 'T17 D12',
-  76: 'T20 D8',
-  77: 'T19 D10',
-  78: 'T18 D12',
-  79: 'T19 D11',
-  80: 'T20 D10',
-  81: 'T19 D12',
-  82: 'T14 D20',
-  83: 'T17 D16',
-  84: 'T20 D12',
-  85: 'T15 D20',
-  86: 'T18 D16',
-  87: 'T17 D18',
-  88: 'T16 D20',
-  89: 'T19 D16',
-  90: 'T20 D15',
-  91: 'T17 D20',
-  92: 'T20 D16',
-  93: 'T19 D18',
-  94: 'T18 D20',
-  95: 'T19 D19',
-  96: 'T20 D18',
-  97: 'T19 D20',
-  98: 'T20 D19',
-  99: 'T17 D24',
-  100: 'T20 D20',
-  101: 'T17 D25',
-  102: 'T16 D27',
-  103: 'T19 D23',
-  104: 'T18 D25',
-  105: 'T19 D24',
-  106: 'T20 D23',
-  107: 'T19 D25',
-  108: 'T20 D24',
-  109: 'T19 D26',
-  110: 'T20 D25',
-  111: 'T19 D27',
-  112: 'T20 D26',
-  113: 'T19 D28',
-  114: 'T20 D27',
-  115: 'T19 D29',
-  116: 'T20 D28',
-  117: 'T20 D29',
-  118: 'T20 D29',
-  119: 'T20 T19 D1',
-  120: 'T20 D30',
-  121: 'T19 D32',
-  122: 'T18 D34',
-  123: 'T19 D33',
-  124: 'T20 D32',
-  125: 'T20 D32',
-  126: 'T19 D34',
-  127: 'T20 D33',
-  128: 'T18 D37',
-  129: 'T19 D36',
-  130: 'T20 D35',
-  131: 'T20 D35',
-  132: 'T20 D36',
-  133: 'T20 D36',
-  134: 'T20 D37',
-  135: 'T20 D37',
-  136: 'T20 D38',
-  137: 'T20 D38',
-  138: 'T20 D39',
-  139: 'T19 D41',
-  140: 'T20 D40',
-  141: 'T20 D40',
-  142: 'T20 D41',
-  143: 'T20 D41',
-  144: 'T20 D42',
-  145: 'T20 D42',
-  146: 'T20 D43',
-  147: 'T20 D43',
-  148: 'T20 D44',
-  149: 'T20 D44',
-  150: 'T20 D45',
-  151: 'T20 D45',
-  152: 'T20 D46',
-  153: 'T20 D46',
-  154: 'T20 D47',
-  155: 'T20 D47',
-  156: 'T20 D48',
-  157: 'T20 D48',
-  158: 'T20 D49',
-  160: 'T20 T20 D20',
-  161: 'T20 T17 D25',
-  164: 'T20 T18 D25',
-  167: 'T20 T19 DB',
-  170: 'T20 T20 DB',
-};
+/// Returns a valid checkout suggestion for X01, or null if none.
+///
+/// - Finish must end on a double (D1..D20) or double bull (DB=50).
+/// - Bogey numbers (159, 162, 163, 165, 166, 168, 169) return null.
+String? suggestX01Checkout(int remaining) {
+  if (remaining < 2 || remaining > 170) return null;
+  if (const {159, 162, 163, 165, 166, 168, 169}.contains(remaining)) return null;
+
+  final all = allPossibleThrows()
+      .where((t) => t.points > 0)
+      .toList(growable: false);
+
+  bool isFinisher(DartThrow t) {
+    if (t.segment.kind == DartSegmentKind.bull50) return true;
+    return t.segment.kind == DartSegmentKind.number && t.multiplier == DartMultiplier.double;
+  }
+
+  String label(DartThrow t) {
+    return switch (t.segment.kind) {
+      DartSegmentKind.bull50 => 'DB',
+      DartSegmentKind.bull25 => '25',
+      DartSegmentKind.miss => 'MISS',
+      DartSegmentKind.number => '${switch (t.multiplier) {
+          DartMultiplier.single => 'S',
+          DartMultiplier.double => 'D',
+          DartMultiplier.triple => 'T',
+        }}${t.segment.value}',
+    };
+  }
+
+  // 1-dart finishes
+  for (final a in all) {
+    if (!isFinisher(a)) continue;
+    if (a.points == remaining) return label(a);
+  }
+
+  // 2-dart finishes
+  for (final a in all) {
+    final left = remaining - a.points;
+    if (left <= 0) continue;
+    for (final b in all) {
+      if (!isFinisher(b)) continue;
+      if (b.points == left) return '${label(a)} ${label(b)}';
+    }
+  }
+
+  // 3-dart finishes
+  for (final a in all) {
+    final left1 = remaining - a.points;
+    if (left1 <= 0) continue;
+    for (final b in all) {
+      final left2 = left1 - b.points;
+      if (left2 <= 0) continue;
+      for (final c in all) {
+        if (!isFinisher(c)) continue;
+        if (c.points == left2) return '${label(a)} ${label(b)} ${label(c)}';
+      }
+    }
+  }
+
+  return null;
+}

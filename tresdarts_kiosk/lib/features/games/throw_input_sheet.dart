@@ -56,6 +56,18 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
   int? _selectedNumber;
   final List<DartThrow> _picked = [];
 
+  int get _turnSum => _picked.fold<int>(0, (a, b) => a + b.points);
+
+  void _removeAt(int i) {
+    if (i < 0 || i >= _picked.length) return;
+    setState(() => _picked.removeAt(i));
+  }
+
+  void _undo() {
+    if (_picked.isEmpty) return;
+    setState(() => _picked.removeLast());
+  }
+
   void _pick(DartThrow t) {
     final max = widget.maxPicks.clamp(1, 3);
     if (_picked.length >= max) return;
@@ -80,6 +92,8 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
     final cs = Theme.of(context).colorScheme;
     final max = widget.maxPicks.clamp(1, 3);
     final h = MediaQuery.of(context).size.height;
+    final remaining = widget.remainingPoints;
+    final remainingAfter = remaining != null ? (remaining - _turnSum) : null;
     return SafeArea(
       top: false,
       child: SizedBox(
@@ -115,6 +129,81 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                   ],
                 ),
                 const SizedBox(height: 4),
+              ],
+              if (remaining != null) ...[
+                Row(
+                  children: [
+                    Text(
+                      'Vuoron summa: $_turnSum',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Jäljellä heiton jälkeen: ${remainingAfter ?? '-'}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+              ],
+              if (_picked.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Text(
+                      'Vuoron heitot',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: _undo,
+                      icon: const Icon(Icons.undo, size: 18),
+                      label: const Text('Undo'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (var i = 0; i < _picked.length; i++)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: cs.outline),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${_picked[i].label} · ${_picked[i].points}',
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: cs.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(width: 6),
+                            InkWell(
+                              onTap: () => _removeAt(i),
+                              child: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
               ],
               Row(
                 children: [

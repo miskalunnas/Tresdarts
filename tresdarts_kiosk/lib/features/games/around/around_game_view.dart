@@ -11,6 +11,9 @@ import '../throw_input_sheet.dart';
 import '../turn_timeline.dart';
 import '../player_throw_panel.dart';
 import '../confirm_exit_game_dialog.dart';
+import '../win_continue_dialog.dart';
+import '../turn_order_spinner_dialog.dart';
+import '../../leaderboard/leaderboard_repository.dart';
 import 'around_engine.dart';
 
 class AroundGameView extends StatefulWidget {
@@ -37,10 +40,29 @@ class _AroundGameViewState extends State<AroundGameView> {
   late TurnTimeline _timeline;
   late AroundState _state;
   StreamSubscription<DartThrow>? _sub;
+  int? _firstWinnerIndex;
+  bool _playOut = false;
+  bool _winDialogOpen = false;
+  final Set<int> _frozenPlayers = {};
+  final _leaderboardRepo = LeaderboardRepository();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final order = await showTurnOrderSpinnerDialog(
+        context,
+        players: widget.players,
+      );
+      if (!mounted) return;
+      if (order != null) {
+        Navigator.of(context).pushReplacementNamed(
+          AroundGameView.routeName,
+          arguments: order,
+        );
+      }
+    });
     _timeline = TurnTimeline.start(playerCount: widget.players.length);
     _recompute();
     _sub = widget.throwSource.stream.listen((t) {
@@ -60,9 +82,37 @@ class _AroundGameViewState extends State<AroundGameView> {
     _state = computeAround(players: widget.players, timeline: _timeline);
   }
 
-  void _finishIfWinner() {
+  bool _isFinishedPlayer(int idx) => _state.progress[idx] >= 21;
+
+  void _skipFrozenTurnsIfNeeded() {
+    // TurnTimeline can't skip players; we fast-forward frozen players with MISS x3.
+    // MISS doesn't affect scoring in any of the timeline-based engines.
+    var guard = 0;
+    while (_playOut &&
+        _timeline.turns.isNotEmpty &&
+        _frozenPlayers.contains(_timeline.activePlayerIndex) &&
+        guard < widget.players.length + 2) {
+      _timeline = _timeline.addThrow(
+        const DartThrow(segment: DartSegment.miss, multiplier: DartMultiplier.single),
+      );
+      _timeline = _timeline.addThrow(
+        const DartThrow(segment: DartSegment.miss, multiplier: DartMultiplier.single),
+      );
+      _timeline = _timeline.addThrow(
+        const DartThrow(segment: DartSegment.miss, multiplier: DartMultiplier.single),
+      );
+      _recompute();
+      guard++;
+    }
+  }
+
+  Future<void> _handleFirstWinIfNeeded() async {
+    if (_firstWinnerIndex != null) return;
     final winner = _state.winnerIndex;
     if (winner == null) return;
+    if (_winDialogOpen) return;
+    _winDialogOpen = true;
+
     final pd = computePointsAndDartsByPlayer(_timeline);
     final pointsByPlayer = <String, int>{};
     final dartsByPlayer = <String, int>{};
@@ -70,28 +120,64 @@ class _AroundGameViewState extends State<AroundGameView> {
       pointsByPlayer[widget.players[i]] = pd.points[i] ?? 0;
       dartsByPlayer[widget.players[i]] = pd.darts[i] ?? 0;
     }
-    widget.onFinished(
-      GameResult(
-        gameModeId: GameModeId.aroundTheClock,
-        winnerName: widget.players[winner],
-        players: widget.players,
-        scores: {
-          'progress': _state.progress,
-          'throws': _timeline.flatThrows.length,
-          'dartPointsByPlayer': pointsByPlayer,
-          'dartCountByPlayer': dartsByPlayer,
-        },
-        playedAt: DateTime.now(),
-      ),
+
+    final result = GameResult(
+      gameModeId: GameModeId.aroundTheClock,
+      winnerName: widget.players[winner],
+      players: widget.players,
+      scores: {
+        'progress': _state.progress,
+        'throws': _timeline.flatThrows.length,
+        'dartPointsByPlayer': pointsByPlayer,
+        'dartCountByPlayer': dartsByPlayer,
+      },
+      playedAt: DateTime.now(),
     );
+
+    final action = await showWinContinueDialog(
+      context,
+      winnerName: widget.players[winner],
+    );
+    if (!mounted) return;
+    _winDialogOpen = false;
+    if (action == null) return;
+
+    if (action == WinContinueAction.endGame) {
+      widget.onFinished(result);
+      return;
+    }
+
+    // Continue: persist only the first win, keep playing without navigating away.
+    await _leaderboardRepo.saveResult(result);
+    if (!mounted) return;
+    setState(() {
+      _firstWinnerIndex = winner;
+      _playOut = true;
+      _frozenPlayers.add(winner);
+      // Also freeze anyone already finished (edge case if multiple hit same tick update).
+      for (var i = 0; i < widget.players.length; i++) {
+        if (_isFinishedPlayer(i)) _frozenPlayers.add(i);
+      }
+      _skipFrozenTurnsIfNeeded();
+    });
   }
 
   void _addThrow(DartThrow t) {
+    if (_playOut && _frozenPlayers.contains(_timeline.activePlayerIndex)) {
+      setState(() => _skipFrozenTurnsIfNeeded());
+      return;
+    }
     setState(() {
       _timeline = _timeline.addThrow(t);
       _recompute();
+      if (_playOut) {
+        for (var i = 0; i < widget.players.length; i++) {
+          if (_isFinishedPlayer(i)) _frozenPlayers.add(i);
+        }
+        _skipFrozenTurnsIfNeeded();
+      }
     });
-    _finishIfWinner();
+    _handleFirstWinIfNeeded();
   }
 
   void _manualAdd() {
@@ -102,7 +188,7 @@ class _AroundGameViewState extends State<AroundGameView> {
       onPickMany: (list) {
         for (final t in list) {
           _addThrow(t);
-          if (_state.winnerIndex != null) break;
+          if (!_playOut && _state.winnerIndex != null) break;
         }
       },
     );
@@ -117,15 +203,31 @@ class _AroundGameViewState extends State<AroundGameView> {
         setState(() {
           _timeline = _timeline.replaceThrowAt(i, t);
           _recompute();
+          if (_playOut) {
+            _frozenPlayers.removeWhere((_) => true);
+            if (_firstWinnerIndex != null) _frozenPlayers.add(_firstWinnerIndex!);
+            for (var p = 0; p < widget.players.length; p++) {
+              if (_isFinishedPlayer(p)) _frozenPlayers.add(p);
+            }
+            _skipFrozenTurnsIfNeeded();
+          }
         });
-        _finishIfWinner();
+        _handleFirstWinIfNeeded();
       },
       onDelete: (i) {
         setState(() {
           _timeline = _timeline.deleteThrowAt(i);
           _recompute();
+          if (_playOut) {
+            _frozenPlayers.removeWhere((_) => true);
+            if (_firstWinnerIndex != null) _frozenPlayers.add(_firstWinnerIndex!);
+            for (var p = 0; p < widget.players.length; p++) {
+              if (_isFinishedPlayer(p)) _frozenPlayers.add(p);
+            }
+            _skipFrozenTurnsIfNeeded();
+          }
         });
-        _finishIfWinner();
+        _handleFirstWinIfNeeded();
       },
     );
   }
@@ -139,7 +241,7 @@ class _AroundGameViewState extends State<AroundGameView> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final active = _timeline.activePlayerIndex;
-    final winner = _state.winnerIndex;
+    final winner = _playOut ? _firstWinnerIndex : _state.winnerIndex;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -244,7 +346,7 @@ class _AroundGameViewState extends State<AroundGameView> {
                         children: [
                           Expanded(
                             child: FilledButton.icon(
-                              onPressed: winner != null ? null : _manualAdd,
+                              onPressed: (_playOut && _frozenPlayers.contains(active)) ? null : (winner != null && !_playOut ? null : _manualAdd),
                               icon: const Icon(Icons.add, size: 18),
                               label: const Text('Lisää heitto'),
                             ),
