@@ -125,263 +125,277 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final filtered = _filteredPlayers;
     return Scaffold(
       backgroundColor: cs.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: widget.onBack,
-                    icon: const Icon(Icons.arrow_back, size: 18),
-                    label: const Text('Takaisin'),
-                  ),
-                  const Spacer(),
-                  Text(
-                    widget.title,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              KioskTextField(
-                controller: _searchController,
-                title: 'Haku',
-                hintText: 'Hae pelaajaa...',
-                maxLength: 30,
-                decoration: InputDecoration(
-                  hintText: 'Hae pelaajaa...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: cs.surfaceContainerHighest,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: cs.outline),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Valitse ${widget.minPlayers}–${widget.maxPlayers} pelaaja(a) '
-                        '(${_selected.length}/${widget.maxPlayers})',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _loading ? null : _load,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Päivitä'),
-                    ),
-                  ],
-                ),
-              ),
-              if (_selected.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: cs.outline),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  Row(
                     children: [
+                      OutlinedButton.icon(
+                        onPressed: widget.onBack,
+                        icon: const Icon(Icons.arrow_back, size: 18),
+                        label: const Text('Takaisin'),
+                      ),
+                      const Spacer(),
                       Text(
-                        'Valitut',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        widget.title,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: cs.onSurface,
                             ),
                       ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  KioskTextField(
+                    controller: _searchController,
+                    title: 'Haku',
+                    hintText: 'Hae pelaajaa...',
+                    maxLength: 30,
+                    decoration: InputDecoration(
+                      hintText: 'Hae pelaajaa...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      filled: true,
+                      fillColor: cs.surfaceContainerHighest,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.outline),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Valitse ${widget.minPlayers}–${widget.maxPlayers} pelaaja(a) '
+                            '(${_selected.length}/${widget.maxPlayers})',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _loading ? null : _load,
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Päivitä'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_selected.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: cs.outline),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (final p in _selected)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: cs.surface,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: cs.outline),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    p.name,
-                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                          color: cs.onSurface,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                          Text(
+                            'Valitut',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface,
+                                ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final p in _selected)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: cs.surface,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: cs.outline),
                                   ),
-                                  const SizedBox(width: 6),
-                                  InkWell(
-                                    onTap: () => _toggle(p),
-                                    child: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        p.name,
+                                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                              color: cs.onSurface,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      InkWell(
+                                        onTap: () => _toggle(p),
+                                        child: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
+                                ),
+                            ],
+                          ),
                         ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                ]),
+              ),
+            ),
+            if (_loading)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.copyWith(color: cs.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _load,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Yritä uudelleen'),
                       ),
                     ],
                   ),
                 ),
-              ],
-              const SizedBox(height: 16),
-              Expanded(
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error != null
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _error!,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.copyWith(color: cs.onSurfaceVariant),
-                                ),
-                                const SizedBox(height: 12),
-                                OutlinedButton.icon(
-                                  onPressed: _load,
-                                  icon: const Icon(Icons.refresh, size: 18),
-                                  label: const Text('Yritä uudelleen'),
-                                ),
-                              ],
-                            ),
-                          )
-                    : _players.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Ei pelaajia vielä.\nLuo uusi käyttäjä tai pelaa vieraana.',
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                            ),
-                          )
-                        : _filteredPlayers.isEmpty
-                            ? Center(
-                                child: Text(
-                                  _searchQuery.isEmpty
-                                      ? 'Ei pelaajia.'
-                                      : 'Ei tuloksia haulla „$_searchQuery".',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.copyWith(color: cs.onSurfaceVariant),
-                                ),
-                              )
-                        : ListView.builder(
-                            itemCount: _filteredPlayers.length,
-                            itemBuilder: (context, index) {
-                              final p = _filteredPlayers[index];
-                              final selected =
-                                  _selected.any((x) => x.id == p.id);
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: cs.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: selected ? cs.primary : cs.outline,
-                                  ),
-                                ),
-                                child: ListTile(
-                                  onTap: () => _toggle(p),
-                                  title: Text(
-                                    p.name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: cs.onSurface,
-                                        ),
-                                  ),
-                                  subtitle: p.entrySong == null ||
-                                          p.entrySong!.trim().isEmpty
-                                      ? null
-                                      : Text(
-                                          'Sisääntulo: ${p.entrySong}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: cs.onSurfaceVariant,
-                                              ),
-                                        ),
-                                  trailing: selected
-                                      ? Icon(Icons.check, color: cs.primary)
-                                      : null,
-                                ),
-                              );
-                            },
+              )
+            else if (_players.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    'Ei pelaajia vielä.\nLuo uusi käyttäjä tai pelaa vieraana.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ),
+              )
+            else if (filtered.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Text(
+                    _searchQuery.isEmpty
+                        ? 'Ei pelaajia.'
+                        : 'Ei tuloksia haulla „$_searchQuery".',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyLarge
+                        ?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final p = filtered[index];
+                      final selected = _selected.any((x) => x.id == p.id);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selected ? cs.primary : cs.outline,
                           ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _selected.length >= widget.maxPlayers
-                          ? null
-                          : _handleCreateNew,
-                      icon: const Icon(Icons.person_add, size: 18),
-                      label: const Text('Uusi käyttäjä'),
-                    ),
+                        ),
+                        child: ListTile(
+                          onTap: () => _toggle(p),
+                          title: Text(
+                            p.name,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface,
+                                ),
+                          ),
+                          subtitle: p.entrySong == null || p.entrySong!.trim().isEmpty
+                              ? null
+                              : Text(
+                                  'Sisääntulo: ${p.entrySong}',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                ),
+                          trailing: selected ? Icon(Icons.check, color: cs.primary) : null,
+                        ),
+                      );
+                    },
+                    childCount: filtered.length,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _addGuest,
-                      child: const Text('Lisää vieras'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _selected.length >= widget.minPlayers
-                      ? () => widget.onContinue([..._selected])
-                      : null,
-                  child: const Text('Jatka'),
                 ),
               ),
-            ],
-          ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _selected.length >= widget.maxPlayers ? null : _handleCreateNew,
+                            icon: const Icon(Icons.person_add, size: 18),
+                            label: const Text('Uusi käyttäjä'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _addGuest,
+                            child: const Text('Lisää vieras'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _selected.length >= widget.minPlayers
+                          ? () => widget.onContinue([..._selected])
+                          : null,
+                      child: const Text('Jatka'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

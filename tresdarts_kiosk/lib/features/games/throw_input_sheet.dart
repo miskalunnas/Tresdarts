@@ -9,12 +9,16 @@ class ThrowInputSheet extends StatefulWidget {
     this.title = 'Lisää heitto',
     this.maxPicks = 1,
     this.onPickMany,
+    this.remainingPoints,
+    this.checkoutText,
   });
 
   final void Function(DartThrow t) onPick;
   final String title;
   final int maxPicks;
   final void Function(List<DartThrow> throws)? onPickMany;
+  final int? remainingPoints;
+  final String? checkoutText;
 
   static Future<void> show(
     BuildContext context, {
@@ -22,6 +26,8 @@ class ThrowInputSheet extends StatefulWidget {
     String title = 'Lisää heitto',
     int maxPicks = 1,
     void Function(List<DartThrow> throws)? onPickMany,
+    int? remainingPoints,
+    String? checkoutText,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -35,6 +41,8 @@ class ThrowInputSheet extends StatefulWidget {
         onPickMany: onPickMany,
         maxPicks: maxPicks.clamp(1, 3),
         title: title,
+        remainingPoints: remainingPoints,
+        checkoutText: checkoutText,
       ),
     );
   }
@@ -81,7 +89,33 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Yksi pieni otsikkorivi: vain pisteet / valmis
+              if (widget.remainingPoints != null || (widget.checkoutText != null && widget.checkoutText!.isNotEmpty)) ...[
+                Row(
+                  children: [
+                    if (widget.remainingPoints != null)
+                      Text(
+                        'Jäljellä: ${widget.remainingPoints}',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                      ),
+                    if (widget.remainingPoints != null && widget.checkoutText != null && widget.checkoutText!.isNotEmpty)
+                      const SizedBox(width: 16),
+                    if (widget.checkoutText != null && widget.checkoutText!.isNotEmpty)
+                      Flexible(
+                        child: Text(
+                          'Lopetus: ${widget.checkoutText}',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+              ],
               Row(
                 children: [
                   Text(

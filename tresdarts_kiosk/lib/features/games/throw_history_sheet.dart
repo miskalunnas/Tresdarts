@@ -111,7 +111,8 @@ class _ThrowHistorySheetState extends State<ThrowHistorySheet> {
                 child: ListView.builder(
                   itemCount: _throws.length,
                   itemBuilder: (context, index) {
-                    final t = _throws[index];
+                    final originalIndex = _throws.length - 1 - index;
+                    final t = _throws[originalIndex];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -138,20 +139,20 @@ class _ThrowHistorySheetState extends State<ThrowHistorySheet> {
                             context,
                             title: 'Vaihda heitto',
                             onPick: (picked) {
-                              setState(() => _throws[index] = picked);
-                              widget.onReplace(index, picked);
+                              setState(() => _throws[originalIndex] = picked);
+                              widget.onReplace(originalIndex, picked);
                             },
                           );
                         },
                         trailing: IconButton(
                           tooltip: 'Poista',
                           onPressed: () {
-                            setState(() => _throws.removeAt(index));
-                            widget.onDelete(index);
+                            setState(() => _throws.removeAt(originalIndex));
+                            widget.onDelete(originalIndex);
                           },
                           icon: Icon(Icons.delete_outline, color: cs.onSurfaceVariant),
                         ),
-                      ),
+                      );
                     );
                   },
                 ),

@@ -6,6 +6,7 @@ import '../game_rules.dart';
 import '../throw_input_sheet.dart';
 import '../darts_throw.dart';
 import '../confirm_exit_game_dialog.dart';
+import 'x01_checkout.dart';
 import 'x01_game.dart';
 
 class X01GameView extends StatefulWidget {
@@ -89,6 +90,10 @@ class _X01GameViewState extends State<X01GameView> {
   }
 
   void _addThrow() {
+    final remaining = _state.scores[_state.activePlayerIndex];
+    final checkout = remaining >= 2 && remaining <= 170
+        ? x01CheckoutSuggestion[remaining]
+        : null;
     ThrowInputSheet.show(
       context,
       title: 'Lisää heitto',
@@ -100,6 +105,8 @@ class _X01GameViewState extends State<X01GameView> {
           if (_state.isFinished) break;
         }
       },
+      remainingPoints: remaining,
+      checkoutText: checkout,
     );
   }
 

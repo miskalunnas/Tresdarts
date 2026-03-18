@@ -34,18 +34,22 @@ AroundState computeAround({
   }
 
   for (final turn in timeline.turns) {
+    final idx = turn.playerIndex;
+    if (winner != null) break;
+    int p = progress[idx];
     for (final t in turn.throws) {
-      final idx = turn.playerIndex;
-      if (winner != null) break;
-      final target = progress[idx];
+      final target = p;
       if (hitTarget(t, target)) {
-        progress[idx] = (target == 21) ? 21 : (target + 1);
-        if (progress[idx] == 21 && hitTarget(t, 21)) {
+        final advance = t.multiplier.value; // single=1, double=2, triple=3
+        p += advance;
+        if (p >= 21) {
+          p = 21;
           winner = idx;
           break;
         }
       }
     }
+    progress[idx] = p;
   }
 
   return AroundState(
