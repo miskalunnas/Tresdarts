@@ -19,6 +19,13 @@
 
 Skripti tekee: pull → clean → pub get → build → käynnistää sovelluksen. Kun haluat päivittää uudestaan, aja vain `./scripts/update-and-run-on-pi.sh` uudestaan.
 
+**Jos tulee "Permission denied":** anna suoritusoikeus kerran tai aja `bash`-illa:
+```bash
+chmod +x scripts/update-and-run-on-pi.sh
+# tai aina ilman chmodia:
+bash scripts/update-and-run-on-pi.sh
+```
+
 ---
 
 ## Tapa 2: Repo ei ole vielä Pi:llä
