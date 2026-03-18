@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -24,7 +25,9 @@ class SqliteDb {
   }
 
   Future<Database> _open() async {
-    final dir = await getApplicationDocumentsDirectory();
+    // Use app support dir for kiosk stability (exists on Linux, not user-visible like Documents).
+    final dir = await getApplicationSupportDirectory();
+    await Directory(dir.path).create(recursive: true);
     final path = p.join(dir.path, 'tresdarts.db');
     final database = await openDatabase(
       path,
