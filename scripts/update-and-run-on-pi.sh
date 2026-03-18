@@ -8,6 +8,7 @@ cd "$REPO_ROOT"
 
 echo "==> Päivitetään repo..."
 git checkout -- tresdarts_kiosk/pubspec.lock 2>/dev/null || true
+git checkout -- scripts/update-and-run-on-pi.sh 2>/dev/null || true
 git pull origin main
 
 echo "==> Buildataan kiosk..."
