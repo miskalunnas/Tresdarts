@@ -18,12 +18,15 @@ class ScreensaverView extends StatefulWidget {
 class _ScreensaverViewState extends State<ScreensaverView> {
   static const _playlistAsset = 'assets/config/playlist.json';
   static const _clockTick = Duration(seconds: 1);
+  static const _exitTapWindow = Duration(seconds: 2);
 
   final _pageController = PageController();
   Timer? _timer;
   Timer? _clockTimer;
+  Timer? _armTimer;
   ScreensaverPlaylist? _playlist;
   DateTime _now = DateTime.now();
+  bool _exitArmed = false;
 
   @override
   void initState() {
@@ -63,8 +66,22 @@ class _ScreensaverViewState extends State<ScreensaverView> {
   void dispose() {
     _timer?.cancel();
     _clockTimer?.cancel();
+    _armTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _handleTap() {
+    if (_exitArmed) {
+      widget.onTap();
+      return;
+    }
+    setState(() => _exitArmed = true);
+    _armTimer?.cancel();
+    _armTimer = Timer(_exitTapWindow, () {
+      if (!mounted) return;
+      setState(() => _exitArmed = false);
+    });
   }
 
   @override
@@ -72,7 +89,7 @@ class _ScreensaverViewState extends State<ScreensaverView> {
     final playlist = _playlist;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
+      onTap: _handleTap,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -89,7 +106,9 @@ class _ScreensaverViewState extends State<ScreensaverView> {
                 child: _TapHint(
                   text: playlist == null
                       ? 'Ladataan…'
-                      : 'Kosketa näyttöä jatkaaksesi',
+                      : (_exitArmed
+                          ? 'Kosketa uudelleen jatkaaksesi'
+                          : 'Kosketa näyttöä herättääksesi'),
                 ),
               ),
             ),
@@ -165,12 +184,28 @@ class _KenBurnsAssetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Add a bit more life: slow zoom + subtle pan drift.
+    final hash = asset.hashCode;
+    final dirX = (hash % 2 == 0) ? 1.0 : -1.0;
+    final dirY = (hash % 3 == 0) ? 1.0 : -1.0;
+    final driftX = 18.0 * dirX;
+    final driftY = 10.0 * dirY;
+
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1.0, end: 1.06),
-      duration: const Duration(seconds: 12),
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(seconds: 14),
       curve: Curves.easeInOut,
-      builder: (context, scale, child) {
-        return Transform.scale(scale: scale, child: child);
+      builder: (context, t, child) {
+        final scale = 1.02 + (0.06 * t);
+        final dx = driftX * (t - 0.5);
+        final dy = driftY * (t - 0.5);
+        return Transform.translate(
+          offset: Offset(dx, dy),
+          child: Transform.scale(
+            scale: scale,
+            child: child,
+          ),
+        );
       },
       child: Image.asset(
         asset,

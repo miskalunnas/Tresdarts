@@ -39,6 +39,17 @@ class TurnTimeline {
     return (last.playerIndex + 1) % playerCount;
   }
 
+  /// Kuinka monta heittoa aktiivisen pelaajan nykyisessä vuorossa on jo (0..3).
+  int get activeTurnThrowCount {
+    if (turns.isEmpty) return 0;
+    final last = turns.last;
+    if (last.throws.length < 3) return last.throws.length;
+    return 0;
+  }
+
+  /// Kuinka monta heittoa on jäljellä nykyisessä vuorossa (1..3).
+  int get remainingInActiveTurn => 3 - activeTurnThrowCount;
+
   List<DartThrow> get flatThrows =>
       turns.expand((t) => t.throws).toList(growable: false);
 

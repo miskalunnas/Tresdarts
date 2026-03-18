@@ -6,29 +6,39 @@ import '../../core/osk/osk.dart';
 import 'player_profile.dart';
 import 'player_repository.dart';
 
-class PlayerCreateView extends StatefulWidget {
-  const PlayerCreateView({
+class PlayerEditView extends StatefulWidget {
+  const PlayerEditView({
     super.key,
+    required this.initialProfile,
     required this.onBack,
-    required this.onCreated,
+    required this.onSaved,
   });
 
-  static const routeName = '/players/create';
+  static const routeName = '/players/edit';
 
+  final PlayerProfile initialProfile;
   final VoidCallback onBack;
-  final void Function(PlayerProfile profile) onCreated;
+  final void Function(PlayerProfile profile) onSaved;
 
   @override
-  State<PlayerCreateView> createState() => _PlayerCreateViewState();
+  State<PlayerEditView> createState() => _PlayerEditViewState();
 }
 
-class _PlayerCreateViewState extends State<PlayerCreateView> {
+class _PlayerEditViewState extends State<PlayerEditView> {
   final _repo = PlayerRepository();
-  final _name = TextEditingController();
-  final _song = TextEditingController();
+  late final TextEditingController _name;
+  late final TextEditingController _song;
   String? _photoPath;
   bool _saving = false;
   bool _takingPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.initialProfile.name);
+    _song = TextEditingController(text: widget.initialProfile.entrySong ?? '');
+    _photoPath = widget.initialProfile.photoPath;
+  }
 
   @override
   void dispose() {
@@ -40,8 +50,6 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
   Future<void> _takePhoto() async {
     if (_takingPhoto || _saving) return;
     setState(() => _takingPhoto = true);
-    // Placeholder for camera integration (Pi): for now we just show UI and keep it optional.
-    // If a file path is already set (e.g. by future integration), we can display it.
     if (!mounted) return;
     try {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,16 +67,16 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
     if (name.isEmpty) return;
     setState(() => _saving = true);
     final profile = PlayerProfile(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: widget.initialProfile.id,
       name: name,
       entrySong: _song.text.trim().isEmpty ? null : _song.text.trim(),
       photoPath: _photoPath,
-      createdAt: DateTime.now(),
+      createdAt: widget.initialProfile.createdAt,
     );
     await _repo.upsert(profile);
     if (!mounted) return;
     setState(() => _saving = false);
-    widget.onCreated(profile);
+    widget.onSaved(profile);
   }
 
   @override
@@ -91,7 +99,7 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
                   ),
                   const Spacer(),
                   Text(
-                    'Uusi käyttäjä',
+                    'Muokkaa käyttäjää',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
@@ -140,14 +148,16 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
                             color: cs.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: cs.outline),
-                            image: _photoPath != null && File(_photoPath!).existsSync()
+                            image: _photoPath != null &&
+                                    _photoPath!.trim().isNotEmpty &&
+                                    File(_photoPath!).existsSync()
                                 ? DecorationImage(
                                     image: FileImage(File(_photoPath!)),
                                     fit: BoxFit.cover,
                                   )
                                 : null,
                           ),
-                          child: _photoPath == null
+                          child: _photoPath == null || _photoPath!.trim().isEmpty
                               ? Icon(Icons.person, color: cs.onSurfaceVariant)
                               : null,
                         ),
@@ -156,7 +166,7 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
                           child: OutlinedButton.icon(
                             onPressed: (_saving || _takingPhoto) ? null : _takePhoto,
                             icon: const Icon(Icons.photo_camera, size: 18),
-                            label: Text(_takingPhoto ? 'Avaa kamera...' : 'Ota profiilikuva'),
+                            label: Text(_takingPhoto ? 'Avaa kamera...' : 'Vaihda kuva'),
                           ),
                         ),
                       ],
@@ -175,7 +185,7 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Luo käyttäjä'),
+                      : const Text('Tallenna'),
                 ),
               ),
             ],

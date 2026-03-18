@@ -1,44 +1,48 @@
-import 'dart:convert';
-
-import '../../core/storage/key_value_storage.dart';
-import '../../core/storage/shared_preferences_storage.dart';
+import '../../core/db/sqlite_db.dart';
+import 'package:sqflite/sqflite.dart';
 import 'player_profile.dart';
 
-const _playersKey = 'tresdarts_players';
 const _maxPlayers = 500;
 
 class PlayerRepository {
-  PlayerRepository([KeyValueStorage? storage])
-      : _storage = storage ?? SharedPreferencesStorage();
-
-  final KeyValueStorage _storage;
+  PlayerRepository();
 
   Future<List<PlayerProfile>> getPlayers() async {
-    final raw = await _storage.get(_playersKey);
-    if (raw == null || raw.isEmpty) return [];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return [];
-      return decoded
-          .map((e) => PlayerProfile.fromJson(
-              e is Map<String, dynamic> ? e : (e is Map ? Map<String, dynamic>.from(e) : null)))
-          .whereType<PlayerProfile>()
-          .toList()
-        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    } catch (_) {
-      return [];
-    }
+    final db = await SqliteDb.instance.db;
+    final rows = await db.query(
+      'players',
+      orderBy: 'LOWER(name) ASC',
+      limit: _maxPlayers,
+    );
+    return rows
+        .map(
+          (r) => PlayerProfile(
+            id: (r['id'] as String?) ?? '',
+            name: (r['name'] as String?) ?? '',
+            entrySong: r['entry_song'] as String?,
+            photoPath: r['photo_path'] as String?,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              (r['created_at_ms'] as int?) ?? 0,
+            ),
+          ),
+        )
+        .where((p) => p.id.isNotEmpty && p.name.isNotEmpty)
+        .toList(growable: false);
   }
 
   Future<void> upsert(PlayerProfile profile) async {
-    final players = await getPlayers();
-    final idx = players.indexWhere((p) => p.id == profile.id);
-    if (idx >= 0) {
-      players[idx] = profile;
-    } else {
-      players.add(profile);
-    }
-    await _save(players);
+    final db = await SqliteDb.instance.db;
+    await db.insert(
+      'players',
+      {
+        'id': profile.id,
+        'name': profile.name,
+        'entry_song': profile.entrySong,
+        'photo_path': profile.photoPath,
+        'created_at_ms': profile.createdAt.millisecondsSinceEpoch,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<PlayerProfile> upsertByName({
@@ -47,37 +51,44 @@ class PlayerRepository {
     String? photoPath,
   }) async {
     final trimmed = name.trim();
-    final players = await getPlayers();
-    final idx = players.indexWhere(
-      (p) => p.name.toLowerCase() == trimmed.toLowerCase(),
+    final db = await SqliteDb.instance.db;
+    final rows = await db.query(
+      'players',
+      where: 'LOWER(name) = ?',
+      whereArgs: [trimmed.toLowerCase()],
+      limit: 1,
     );
+    if (rows.isNotEmpty) {
+      final r = rows.first;
+      final existing = PlayerProfile(
+        id: (r['id'] as String?) ?? '',
+        name: (r['name'] as String?) ?? trimmed,
+        entrySong: r['entry_song'] as String?,
+        photoPath: r['photo_path'] as String?,
+        createdAt: DateTime.fromMillisecondsSinceEpoch(
+          (r['created_at_ms'] as int?) ?? 0,
+        ),
+      );
+      final updated = PlayerProfile(
+        id: existing.id,
+        name: existing.name,
+        entrySong: entrySong ?? existing.entrySong,
+        photoPath: photoPath ?? existing.photoPath,
+        createdAt: existing.createdAt,
+      );
+      await upsert(updated);
+      return updated;
+    }
 
-    final profile = idx >= 0
-        ? PlayerProfile(
-            id: players[idx].id,
-            name: players[idx].name,
-            entrySong: entrySong ?? players[idx].entrySong,
-            photoPath: photoPath ?? players[idx].photoPath,
-            createdAt: players[idx].createdAt,
-          )
-        : PlayerProfile(
-            id: _newId(),
-            name: trimmed,
-            entrySong: entrySong,
-            photoPath: photoPath,
-            createdAt: DateTime.now(),
-          );
-
-    await upsert(profile);
-    return profile;
-  }
-
-  Future<void> _save(List<PlayerProfile> players) async {
-    final trimmed = players.length > _maxPlayers
-        ? players.sublist(players.length - _maxPlayers)
-        : players;
-    final encoded = jsonEncode(trimmed.map((e) => e.toJson()).toList());
-    await _storage.set(_playersKey, encoded);
+    final created = PlayerProfile(
+      id: _newId(),
+      name: trimmed,
+      entrySong: entrySong,
+      photoPath: photoPath,
+      createdAt: DateTime.now(),
+    );
+    await upsert(created);
+    return created;
   }
 
   String _newId() => DateTime.now().microsecondsSinceEpoch.toString();

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'darts_throw.dart';
 import 'throw_input_sheet.dart';
 
-class ThrowHistorySheet extends StatelessWidget {
+class ThrowHistorySheet extends StatefulWidget {
   const ThrowHistorySheet({
     super.key,
     required this.throws,
@@ -37,8 +37,30 @@ class ThrowHistorySheet extends StatelessWidget {
   }
 
   @override
+  State<ThrowHistorySheet> createState() => _ThrowHistorySheetState();
+}
+
+class _ThrowHistorySheetState extends State<ThrowHistorySheet> {
+  late List<DartThrow> _throws;
+
+  @override
+  void initState() {
+    super.initState();
+    _throws = [...widget.throws];
+  }
+
+  @override
+  void didUpdateWidget(covariant ThrowHistorySheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.throws != widget.throws) {
+      _throws = [...widget.throws];
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final maxHeight = MediaQuery.of(context).size.height * 0.75;
     return SafeArea(
       top: false,
       child: Padding(
@@ -72,7 +94,7 @@ class ThrowHistorySheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            if (throws.isEmpty)
+            if (_throws.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
@@ -84,12 +106,12 @@ class ThrowHistorySheet extends StatelessWidget {
                 ),
               )
             else
-              Flexible(
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
                 child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: throws.length,
+                  itemCount: _throws.length,
                   itemBuilder: (context, index) {
-                    final t = throws[index];
+                    final t = _throws[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -115,12 +137,18 @@ class ThrowHistorySheet extends StatelessWidget {
                           ThrowInputSheet.show(
                             context,
                             title: 'Vaihda heitto',
-                            onPick: (picked) => onReplace(index, picked),
+                            onPick: (picked) {
+                              setState(() => _throws[index] = picked);
+                              widget.onReplace(index, picked);
+                            },
                           );
                         },
                         trailing: IconButton(
                           tooltip: 'Poista',
-                          onPressed: () => onDelete(index),
+                          onPressed: () {
+                            setState(() => _throws.removeAt(index));
+                            widget.onDelete(index);
+                          },
                           icon: Icon(Icons.delete_outline, color: cs.onSurfaceVariant),
                         ),
                       ),

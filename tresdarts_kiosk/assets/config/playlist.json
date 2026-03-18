@@ -1,5 +1,9 @@
 {
   "imageIntervalSeconds": 8,
-  "images": ["assets/images/tr3s_blueprints.png"]
+  "images": [
+    "assets/images/screensaver/tr3s_forest.png",
+    "assets/images/screensaver/tr3s_done_beats.png",
+    "assets/images/screensaver/tr3s_deploying.png"
+  ]
 }
 

@@ -26,7 +26,8 @@ class _X01PlayerSelectViewState extends State<X01PlayerSelectView> {
   Widget build(BuildContext context) {
     return PlayerSelectView(
       title: 'X01',
-      playersNeeded: 2,
+      minPlayers: 1,
+      maxPlayers: 8,
       onBack: widget.onBack,
       onContinue: widget.onSelected,
       onCreateNew: widget.onCreateNew,

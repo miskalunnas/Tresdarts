@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/osk/osk.dart';
 import 'player_profile.dart';
 import 'player_repository.dart';
 
@@ -7,14 +8,16 @@ class PlayerSelectView extends StatefulWidget {
   const PlayerSelectView({
     super.key,
     required this.title,
-    required this.playersNeeded,
+    this.minPlayers = 1,
+    this.maxPlayers = 8,
     required this.onBack,
     required this.onContinue,
     required this.onCreateNew,
   });
 
   final String title;
-  final int playersNeeded;
+  final int minPlayers;
+  final int maxPlayers;
   final VoidCallback onBack;
   final void Function(List<PlayerProfile> players) onContinue;
   final VoidCallback onCreateNew;
@@ -30,6 +33,7 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
   bool _loading = true;
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  int _guestCounter = 0;
 
   @override
   void initState() {
@@ -69,26 +73,26 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
       if (idx >= 0) {
         _selected.removeAt(idx);
       } else {
-        if (_selected.length >= widget.playersNeeded) return;
+        if (_selected.length >= widget.maxPlayers) return;
         _selected.add(p);
       }
     });
   }
 
-  Future<void> _playAsGuest() async {
+  void _addGuest() {
+    if (_selected.length >= widget.maxPlayers) return;
     // Guests are not persisted; they still show up in result players list.
     final now = DateTime.now();
-    final guests = List.generate(widget.playersNeeded, (i) {
-      final n = i + 1;
-      return PlayerProfile(
-        id: 'guest-${now.microsecondsSinceEpoch}-$n',
-        name: widget.playersNeeded == 1 ? 'Vieras' : 'Vieras $n',
-        entrySong: null,
-        photoPath: null,
-        createdAt: now,
-      );
-    });
-    widget.onContinue(guests);
+    final next = ++_guestCounter;
+    final name = next == 1 ? 'Vieras' : 'Vieras $next';
+    final guest = PlayerProfile(
+      id: 'guest-${now.microsecondsSinceEpoch}-$next',
+      name: name,
+      entrySong: null,
+      photoPath: null,
+      createdAt: now,
+    );
+    setState(() => _selected.add(guest));
   }
 
   @override
@@ -122,6 +126,7 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                onTap: Osk.maybeShow,
                 decoration: InputDecoration(
                   hintText: 'Hae pelaajaa...',
                   prefixIcon: const Icon(Icons.search),
@@ -146,7 +151,8 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Valitse ${widget.playersNeeded} pelaaja(a)',
+                        'Valitse ${widget.minPlayers}–${widget.maxPlayers} pelaaja(a) '
+                        '(${_selected.length}/${widget.maxPlayers})',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: cs.onSurfaceVariant,
                             ),
@@ -160,6 +166,63 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
                   ],
                 ),
               ),
+              if (_selected.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: cs.outline),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Valitut',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final p in _selected)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: cs.surface,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: cs.outline),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    p.name,
+                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                          color: cs.onSurface,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  InkWell(
+                                    onTap: () => _toggle(p),
+                                    child: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               Expanded(
                 child: _loading
@@ -248,8 +311,8 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _playAsGuest,
-                      child: const Text('Pelaa vieraana'),
+                      onPressed: _addGuest,
+                      child: const Text('Lisää vieras'),
                     ),
                   ),
                 ],
@@ -258,7 +321,7 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _selected.length == widget.playersNeeded
+                  onPressed: _selected.length >= widget.minPlayers
                       ? () => widget.onContinue([..._selected])
                       : null,
                   child: const Text('Jatka'),

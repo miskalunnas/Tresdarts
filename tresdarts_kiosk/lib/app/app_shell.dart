@@ -21,6 +21,7 @@ import '../features/leaderboard/leaderboard_view.dart';
 import '../features/settings/settings_view.dart';
 import '../features/about/about_view.dart';
 import '../features/players/player_create_view.dart';
+import '../features/players/player_edit_view.dart';
 import '../features/players/player_profile.dart';
 import '../features/players/player_repository.dart';
 import '../features/players/walkout_view.dart';
@@ -180,7 +181,8 @@ class _AppShellState extends State<AppShell> {
               settings: RouteSettings(name: name),
               builder: (context) => PlayerSelectView(
                 title: parsedMode.title,
-                playersNeeded: 2,
+                minPlayers: 1,
+                maxPlayers: 8,
                 onBack: () => _navigatorKey.currentState?.pop(),
                 onCreateNew: () =>
                     _navigatorKey.currentState?.pushNamed(PlayerCreateView.routeName),
@@ -264,6 +266,34 @@ class _AppShellState extends State<AppShell> {
               builder: (_) => PlayerCreateView(
                 onBack: () => _navigatorKey.currentState?.pop(),
                 onCreated: (_) => _navigatorKey.currentState?.pop(),
+              ),
+            );
+          }
+
+          if (name == PlayerEditView.routeName) {
+            final args = settings.arguments;
+            PlayerProfile? profile;
+            if (args is Map) {
+              final p = args['profile'];
+              if (p is Map) {
+                profile = PlayerProfile.fromJson(Map<String, dynamic>.from(p));
+              }
+            } else if (args is PlayerProfile) {
+              profile = args;
+            }
+            profile ??= PlayerProfile(
+              id: 'invalid',
+              name: '',
+              entrySong: null,
+              photoPath: null,
+              createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+            );
+            return MaterialPageRoute(
+              settings: RouteSettings(name: PlayerEditView.routeName),
+              builder: (_) => PlayerEditView(
+                initialProfile: profile!,
+                onBack: () => _navigatorKey.currentState?.pop(),
+                onSaved: (p) => _navigatorKey.currentState?.pop(p),
               ),
             );
           }

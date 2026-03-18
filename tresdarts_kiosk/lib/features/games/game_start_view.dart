@@ -4,6 +4,7 @@ import '../leaderboard/game_result.dart';
 import '../leaderboard/leaderboard_repository.dart';
 import '../games/game_mode.dart';
 import '../players/player_profile.dart';
+import '../players/player_edit_view.dart';
 
 class GameStartView extends StatefulWidget {
   const GameStartView({
@@ -32,26 +33,34 @@ class _GameStartViewState extends State<GameStartView> {
   final _leaderboardRepo = LeaderboardRepository();
   List<GameResult> _h2hResults = [];
   bool _h2hLoading = false;
+  late List<PlayerProfile> _profiles;
+  late List<String> _players;
 
   bool get _hasAnyEntrySong =>
-      widget.profiles.any((p) => p.entrySong != null && p.entrySong!.trim().isNotEmpty);
+      _profiles.any((p) => p.entrySong != null && p.entrySong!.trim().isNotEmpty);
 
   bool get _is1v1NamedPair {
-    if (widget.players.length != 2) return false;
-    final a = widget.players[0].trim().toLowerCase();
-    final b = widget.players[1].trim().toLowerCase();
+    if (_players.length != 2) return false;
+    final a = _players[0].trim().toLowerCase();
+    final b = _players[1].trim().toLowerCase();
     return !a.startsWith('vieras') && !b.startsWith('vieras');
   }
 
   @override
   void initState() {
     super.initState();
+    _profiles = [...widget.profiles];
+    _players = [...widget.players];
     if (_is1v1NamedPair) _loadH2h();
   }
 
   @override
   void didUpdateWidget(covariant GameStartView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.players != widget.players || oldWidget.profiles != widget.profiles) {
+      _profiles = [...widget.profiles];
+      _players = [...widget.players];
+    }
     if (_is1v1NamedPair && (oldWidget.players.length != 2 ||
         oldWidget.players[0] != widget.players[0] ||
         oldWidget.players[1] != widget.players[1])) {
@@ -60,11 +69,11 @@ class _GameStartViewState extends State<GameStartView> {
   }
 
   Future<void> _loadH2h() async {
-    if (widget.players.length != 2) return;
+    if (_players.length != 2) return;
     setState(() => _h2hLoading = true);
     final list = await _leaderboardRepo.getHeadToHead(
-      widget.players[0],
-      widget.players[1],
+      _players[0],
+      _players[1],
     );
     if (mounted) {
       setState(() {
@@ -85,8 +94,8 @@ class _GameStartViewState extends State<GameStartView> {
   }
 
   Widget _buildH2hSummary(ColorScheme cs) {
-    final a = widget.players[0].trim();
-    final b = widget.players[1].trim();
+    final a = _players[0].trim();
+    final b = _players[1].trim();
     final aKey = a.toLowerCase();
     final bKey = b.toLowerCase();
     var winsA = 0;
@@ -125,6 +134,44 @@ class _GameStartViewState extends State<GameStartView> {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+
+  Widget _buildEditButton(String playerName, ColorScheme cs) {
+    final key = playerName.trim().toLowerCase();
+    final isGuest = key.startsWith('vieras');
+    if (isGuest) return const SizedBox.shrink();
+
+    final idx = _profiles.indexWhere((p) => p.name.trim().toLowerCase() == key);
+    if (idx < 0) return const SizedBox.shrink();
+
+    return IconButton(
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      tooltip: 'Muokkaa',
+      onPressed: () async {
+        final edited = await Navigator.of(context).pushNamed(
+          PlayerEditView.routeName,
+          arguments: <String, dynamic>{'profile': _profiles[idx].toJson()},
+        );
+        if (!mounted) return;
+        if (edited is! PlayerProfile) return;
+        setState(() {
+          _profiles[idx] = edited;
+          _players = _players
+              .map((n) => n.trim().toLowerCase() == key ? edited.name : n)
+              .toList(growable: false);
+        });
+        if (_is1v1NamedPair) {
+          _loadH2h();
+        } else {
+          setState(() {
+            _h2hResults = [];
+            _h2hLoading = false;
+          });
+        }
+      },
+      icon: Icon(Icons.edit, size: 18, color: cs.onSurfaceVariant),
     );
   }
 
@@ -180,7 +227,7 @@ class _GameStartViewState extends State<GameStartView> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        for (final p in widget.players)
+                        for (final name in _players)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -191,12 +238,19 @@ class _GameStartViewState extends State<GameStartView> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: cs.outline),
                             ),
-                            child: Text(
-                              p,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: cs.onSurface,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  name,
+                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                        color: cs.onSurface,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildEditButton(name, cs),
+                              ],
                             ),
                           ),
                       ],
@@ -298,7 +352,7 @@ class _GameStartViewState extends State<GameStartView> {
                 child: FilledButton.icon(
                   onPressed: () => widget.onStart(
                     _entrySongsEnabled && _hasAnyEntrySong,
-                    widget.profiles,
+                    _profiles,
                   ),
                   icon: const Icon(Icons.play_arrow, size: 18),
                   label: const Text('Aloita peli'),

@@ -84,7 +84,17 @@ class _CricketGameViewState extends State<CricketGameView> {
   }
 
   void _manualAdd() {
-    ThrowInputSheet.show(context, onPick: (t) => _addThrow(t));
+    ThrowInputSheet.show(
+      context,
+      maxPicks: _timeline.remainingInActiveTurn,
+      onPick: (t) => _addThrow(t),
+      onPickMany: (list) {
+        for (final t in list) {
+          _addThrow(t);
+          if (_state.winnerIndex != null) break;
+        }
+      },
+    );
   }
 
   void _editThrows() {

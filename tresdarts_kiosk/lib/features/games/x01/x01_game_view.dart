@@ -72,7 +72,14 @@ class _X01GameViewState extends State<X01GameView> {
     ThrowInputSheet.show(
       context,
       title: 'Lisää heitto',
+      maxPicks: 3 - _state.dartsInTurn,
       onPick: _applyThrow,
+      onPickMany: (list) {
+        for (final t in list) {
+          _applyThrow(t);
+          if (_state.isFinished) break;
+        }
+      },
     );
   }
 

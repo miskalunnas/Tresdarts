@@ -1,11 +1,9 @@
 import 'dart:convert';
 
-import '../../core/storage/key_value_storage.dart';
-import '../../core/storage/shared_preferences_storage.dart';
+import '../../core/db/sqlite_db.dart';
 import '../games/game_mode.dart';
 import 'game_result.dart';
 
-const _key = 'tresdarts_leaderboard_results';
 const _maxResults = 500;
 
 /// Käyttäjäkohtainen ranking: nimi + voittojen määrä + pelatut + viimeisin peli.
@@ -69,44 +67,81 @@ class GameModeStats {
 }
 
 class LeaderboardRepository {
-  LeaderboardRepository([KeyValueStorage? storage])
-      : _storage = storage ?? SharedPreferencesStorage();
-
-  final KeyValueStorage _storage;
+  LeaderboardRepository();
 
   Future<void> saveResult(GameResult result) async {
-    final list = await getResults(limit: _maxResults + 1);
-    list.insert(0, result);
-    final trimmed =
-        list.length > _maxResults ? list.sublist(0, _maxResults) : list;
-    final encoded = jsonEncode(trimmed.map((e) => e.toJson()).toList());
-    await _storage.set(_key, encoded);
+    final db = await SqliteDb.instance.db;
+    await db.insert('game_results', {
+      'game_mode_id': result.gameModeId.name,
+      'winner_name': result.winnerName,
+      'players_json': jsonEncode(result.players),
+      'scores_json': jsonEncode(result.scores),
+      'played_at_ms': result.playedAt.millisecondsSinceEpoch,
+    });
+
+    // Keep last _maxResults only.
+    final rows = await db.query(
+      'game_results',
+      columns: const ['id'],
+      orderBy: 'played_at_ms DESC, id DESC',
+      offset: _maxResults,
+    );
+    if (rows.isNotEmpty) {
+      final ids = rows.map((r) => r['id'] as int).toList();
+      await db.delete(
+        'game_results',
+        where: 'id IN (${List.filled(ids.length, '?').join(',')})',
+        whereArgs: ids,
+      );
+    }
   }
 
   Future<List<GameResult>> getResults({
     GameModeId? mode,
     int? limit,
   }) async {
-    final raw = await _storage.get(_key);
-    if (raw == null || raw.isEmpty) return [];
-    List<dynamic> decoded;
-    try {
-      decoded = jsonDecode(raw) as List<dynamic>? ?? [];
-    } catch (_) {
-      return [];
-    }
-    var results = decoded
-        .map((e) => GameResult.fromJson(
-            e is Map<String, dynamic> ? e : (e is Map ? Map<String, dynamic>.from(e) : null)))
-        .whereType<GameResult>()
-        .toList();
-    if (mode != null) {
-      results = results.where((r) => r.gameModeId == mode).toList();
-    }
-    if (limit != null && results.length > limit) {
-      results = results.sublist(0, limit);
-    }
-    return results;
+    final db = await SqliteDb.instance.db;
+    final where = mode != null ? 'game_mode_id = ?' : null;
+    final whereArgs = mode != null ? [mode.name] : null;
+    final rows = await db.query(
+      'game_results',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'played_at_ms DESC, id DESC',
+      limit: limit,
+    );
+    return rows.map((r) {
+      final modeStr = (r['game_mode_id'] as String?) ?? '';
+      GameModeId? modeId;
+      for (final e in GameModeId.values) {
+        if (e.name == modeStr) {
+          modeId = e;
+          break;
+        }
+      }
+      modeId ??= GameModeId.cricket;
+      final playersJson = (r['players_json'] as String?) ?? '[]';
+      final scoresJson = (r['scores_json'] as String?) ?? '{}';
+      final players = (jsonDecode(playersJson) as List<dynamic>?)
+              ?.whereType<String>()
+              .toList(growable: false) ??
+          const <String>[];
+      final scoresRaw = jsonDecode(scoresJson);
+      final scores = scoresRaw is Map
+          ? Map<String, dynamic>.from(
+              scoresRaw.map((k, v) => MapEntry(k.toString(), v)),
+            )
+          : <String, dynamic>{};
+      return GameResult(
+        gameModeId: modeId,
+        winnerName: (r['winner_name'] as String?) ?? '',
+        players: players,
+        scores: scores,
+        playedAt: DateTime.fromMillisecondsSinceEpoch(
+          (r['played_at_ms'] as int?) ?? 0,
+        ),
+      );
+    }).toList(growable: false);
   }
 
   /// Käyttäjäkohtainen ranking: eniten voittoja ensin. Pysyvä lista = kaikki tulokset.

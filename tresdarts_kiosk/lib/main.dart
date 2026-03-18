@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'app/app_shell.dart';
 
@@ -16,6 +17,12 @@ const Color _tresOutline = Color(0xFF2D2D2D);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Desktop (incl. Raspberry Pi Linux): ensure SQLite works via FFI.
+  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   try {
     await WakelockPlus.enable();
@@ -44,6 +51,12 @@ class TresdartsApp extends StatelessWidget {
     return MaterialApp(
       title: 'Tresdarts',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.none,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: const ColorScheme.dark(

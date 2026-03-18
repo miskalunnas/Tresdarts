@@ -7,15 +7,21 @@ class ThrowInputSheet extends StatefulWidget {
     super.key,
     required this.onPick,
     this.title = 'Lisää heitto',
+    this.maxPicks = 1,
+    this.onPickMany,
   });
 
   final void Function(DartThrow t) onPick;
   final String title;
+  final int maxPicks;
+  final void Function(List<DartThrow> throws)? onPickMany;
 
   static Future<void> show(
     BuildContext context, {
     required void Function(DartThrow t) onPick,
     String title = 'Lisää heitto',
+    int maxPicks = 1,
+    void Function(List<DartThrow> throws)? onPickMany,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -24,7 +30,12 @@ class ThrowInputSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => ThrowInputSheet(onPick: onPick, title: title),
+      builder: (_) => ThrowInputSheet(
+        onPick: onPick,
+        onPickMany: onPickMany,
+        maxPicks: maxPicks.clamp(1, 3),
+        title: title,
+      ),
     );
   }
 
@@ -35,15 +46,31 @@ class ThrowInputSheet extends StatefulWidget {
 class _ThrowInputSheetState extends State<ThrowInputSheet> {
   DartMultiplier _m = DartMultiplier.single;
   int? _selectedNumber;
+  final List<DartThrow> _picked = [];
 
   void _pick(DartThrow t) {
-    widget.onPick(t);
+    final max = widget.maxPicks.clamp(1, 3);
+    if (_picked.length >= max) return;
+    setState(() => _picked.add(t));
+    if (_picked.length >= max) {
+      _finish();
+    }
+  }
+
+  void _finish() {
+    if (_picked.isEmpty) return;
+    widget.onPickMany?.call(List<DartThrow>.unmodifiable(_picked));
+    if (widget.onPickMany == null) {
+      // Backwards compatible: if caller didn't provide onPickMany, call onPick once.
+      widget.onPick(_picked.first);
+    }
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final max = widget.maxPicks.clamp(1, 3);
     return SafeArea(
       top: false,
       child: Padding(
@@ -63,13 +90,18 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
             Row(
               children: [
                 Text(
-                  widget.title,
+                  max > 1 ? '${widget.title} (${_picked.length + 1}/$max)' : widget.title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: cs.onSurface,
                       ),
                 ),
                 const Spacer(),
+                if (max > 1)
+                  TextButton(
+                    onPressed: _picked.isEmpty ? null : _finish,
+                    child: const Text('Valmis'),
+                  ),
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
@@ -82,9 +114,9 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
                 Expanded(
                   child: SegmentedButton<DartMultiplier>(
                     segments: const [
-                      ButtonSegment(value: DartMultiplier.single, label: Text('S')),
-                      ButtonSegment(value: DartMultiplier.double, label: Text('D')),
-                      ButtonSegment(value: DartMultiplier.triple, label: Text('T')),
+                      ButtonSegment(value: DartMultiplier.single, label: Text('Single')),
+                      ButtonSegment(value: DartMultiplier.double, label: Text('Double')),
+                      ButtonSegment(value: DartMultiplier.triple, label: Text('Triple')),
                     ],
                     selected: {_m},
                     onSelectionChanged: (s) {
