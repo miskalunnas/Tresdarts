@@ -1,0 +1,2 @@
+# Pi-skriptit aina LF, jotta git pull ei näe "local changes" Pi:llä
+scripts/*.sh text eol=lf
