@@ -43,7 +43,10 @@ class _UsersAdminViewState extends State<UsersAdminView> {
       _error = null;
     });
     try {
-      final players = await _playerRepo.getPlayers();
+      final players = await _playerRepo.getPlayers().timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('DB timeout'),
+          );
       if (!mounted) return;
       setState(() {
         _players = players;

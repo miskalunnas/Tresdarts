@@ -50,8 +50,8 @@ class _AppShellState extends State<AppShell> {
     () async {
       try {
         await SqliteDb.instance.db;
-      } catch (_) {
-        // ignore
+      } catch (e) {
+        debugPrint('SqliteDb warmup failed: $e');
       }
     }();
     _idleController = IdleController(

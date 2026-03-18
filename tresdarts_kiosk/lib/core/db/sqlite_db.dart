@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -11,6 +10,15 @@ import '../../features/players/player_profile.dart';
 
 const _legacyPlayersKey = 'tresdarts_players';
 const _legacyResultsKey = 'tresdarts_leaderboard_results';
+
+/// Fixed DB path so kiosk/autostart/SSH always use same writable location.
+String _databasePath() {
+  final home = Platform.environment['HOME'] ??
+      Platform.environment['USERPROFILE'] ??
+      '/tmp';
+  final dir = p.join(home, '.local', 'share', 'tresdarts');
+  return p.join(dir, 'tresdarts.db');
+}
 
 class SqliteDb {
   SqliteDb._();
@@ -24,23 +32,28 @@ class SqliteDb {
     return _db!;
   }
 
-  Future<Database> _open() async {
-    // Use app support dir for kiosk stability (exists on Linux, not user-visible like Documents).
-    final dir = await getApplicationSupportDirectory();
-    await Directory(dir.path).create(recursive: true);
-    final path = p.join(dir.path, 'tresdarts.db');
-    final database = await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, _) async {
-        await _createSchema(db);
-      },
-    );
+  /// Returns the path used for the database (for debugging / logs).
+  static String get databasePath => _databasePath();
 
-    // Ensure schema exists even if DB was created elsewhere.
-    await _createSchema(database);
-    await _migrateFromLegacyIfNeeded(database);
-    return database;
+  Future<Database> _open() async {
+    final path = _databasePath();
+    try {
+      final dir = Directory(p.dirname(path));
+      await dir.create(recursive: true);
+      final database = await openDatabase(
+        path,
+        version: 1,
+        onCreate: (db, _) async {
+          await _createSchema(db);
+        },
+      );
+      // Ensure schema exists even if DB was created elsewhere.
+      await _createSchema(database);
+      await _migrateFromLegacyIfNeeded(database);
+      return database;
+    } catch (e) {
+      throw Exception('Tietokanta ei avautunut: $path — $e');
+    }
   }
 
   Future<void> _createSchema(Database db) async {
