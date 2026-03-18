@@ -31,6 +31,7 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
   List<PlayerProfile> _players = [];
   final List<PlayerProfile> _selected = [];
   bool _loading = true;
+  String? _error;
   final _searchController = TextEditingController();
   String _searchQuery = '';
   int _guestCounter = 0;
@@ -51,13 +52,30 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final players = await _repo.getPlayers();
-    if (!mounted) return;
     setState(() {
-      _players = players;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final players = await _repo.getPlayers().timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('DB timeout'),
+          );
+      if (!mounted) return;
+      setState(() {
+        _players = players;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Käyttäjien lataus epäonnistui.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Käyttäjien lataus epäonnistui: $e')),
+      );
+    }
   }
 
   List<PlayerProfile> get _filteredPlayers {
@@ -229,6 +247,28 @@ class _PlayerSelectViewState extends State<PlayerSelectView> {
               Expanded(
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: _load,
+                                  icon: const Icon(Icons.refresh, size: 18),
+                                  label: const Text('Yritä uudelleen'),
+                                ),
+                              ],
+                            ),
+                          )
                     : _players.isEmpty
                         ? Center(
                             child: Text(

@@ -24,6 +24,7 @@ class _LeaderboardViewState extends State<LeaderboardView> {
   GameModeId? _filterMode;
   _LeaderboardTab _tab = _LeaderboardTab.ranking;
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -32,33 +33,45 @@ class _LeaderboardViewState extends State<LeaderboardView> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    if (_tab == _LeaderboardTab.ranking) {
-      final ranking = await _repo.getLeaderboardByWins(mode: _filterMode);
-      if (mounted) {
-        setState(() {
-          _ranking = ranking;
-          _loading = false;
-        });
-      }
-    } else if (_tab == _LeaderboardTab.stats) {
-      final modeStats = await _repo.getAllGameModeStats();
-      final players = await _repo.getLeaderboardByWins(limit: 200);
-      if (mounted) {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      if (_tab == _LeaderboardTab.ranking) {
+        final ranking = await _repo
+            .getLeaderboardByWins(mode: _filterMode)
+            .timeout(const Duration(seconds: 6), onTimeout: () => throw Exception('DB timeout'));
+        if (!mounted) return;
+        setState(() => _ranking = ranking);
+      } else if (_tab == _LeaderboardTab.stats) {
+        final modeStats = await _repo
+            .getAllGameModeStats()
+            .timeout(const Duration(seconds: 8), onTimeout: () => throw Exception('DB timeout'));
+        final players = await _repo
+            .getLeaderboardByWins(limit: 200)
+            .timeout(const Duration(seconds: 6), onTimeout: () => throw Exception('DB timeout'));
+        if (!mounted) return;
         setState(() {
           _modeStats = modeStats;
           _allPlayers = players;
-          _loading = false;
         });
+      } else {
+        final results = await _repo
+            .getResults(mode: _filterMode)
+            .timeout(const Duration(seconds: 6), onTimeout: () => throw Exception('DB timeout'));
+        if (!mounted) return;
+        setState(() => _results = results);
       }
-    } else {
-      final results = await _repo.getResults(mode: _filterMode);
-      if (mounted) {
-        setState(() {
-          _results = results;
-          _loading = false;
-        });
-      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Tulosten lataus epäonnistui.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tulosten lataus epäonnistui: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
   }
 
@@ -80,6 +93,26 @@ class _LeaderboardViewState extends State<LeaderboardView> {
         child: CircularProgressIndicator(
           color: cs.primary,
           strokeWidth: 2,
+        ),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Yritä uudelleen'),
+            ),
+          ],
         ),
       );
     }
@@ -356,6 +389,16 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                       color: cs.onSurface,
                     ),
               ),
+              if (stats.totalDarts > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'AVG (3): ${stats.avg3.toStringAsFixed(1)}',
+                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
               if (stats.lastPlayed != null) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -384,7 +427,8 @@ class _LeaderboardViewState extends State<LeaderboardView> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
-                      '${mode.title}: ${m.wins} / ${m.played} (${m.played > 0 ? (m.winRate * 100).toStringAsFixed(0) : "0"} %)',
+                      '${mode.title}: ${m.wins} / ${m.played} (${m.played > 0 ? (m.winRate * 100).toStringAsFixed(0) : "0"} %)'
+                      '${m.darts > 0 ? ' · AVG (3): ${m.avg3.toStringAsFixed(1)}' : ''}',
                       style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                             color: cs.onSurfaceVariant,
                           ),

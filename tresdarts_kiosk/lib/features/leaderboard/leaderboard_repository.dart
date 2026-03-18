@@ -29,6 +29,8 @@ class UserStats {
     required this.playerName,
     required this.totalWins,
     required this.totalPlayed,
+    required this.totalPoints,
+    required this.totalDarts,
     required this.byMode,
     this.lastPlayed,
   });
@@ -36,19 +38,30 @@ class UserStats {
   final String playerName;
   final int totalWins;
   final int totalPlayed;
+  final int totalPoints;
+  final int totalDarts;
   final Map<GameModeId, ModeStats> byMode;
   final DateTime? lastPlayed;
 
   double get winRate => totalPlayed > 0 ? totalWins / totalPlayed : 0.0;
+  double get avg3 => totalDarts > 0 ? (totalPoints / totalDarts) * 3.0 : 0.0;
 }
 
 class ModeStats {
-  const ModeStats({required this.wins, required this.played});
+  const ModeStats({
+    required this.wins,
+    required this.played,
+    required this.points,
+    required this.darts,
+  });
 
   final int wins;
   final int played;
+  final int points;
+  final int darts;
 
   double get winRate => played > 0 ? wins / played : 0.0;
+  double get avg3 => darts > 0 ? (points / darts) * 3.0 : 0.0;
 }
 
 /// Pelimuotokohtainen yhteenveto.
@@ -144,6 +157,57 @@ class LeaderboardRepository {
     }).toList(growable: false);
   }
 
+  Future<void> anonymizePlayer(String oldName, {String replacement = 'Poistettu käyttäjä'}) async {
+    final key = oldName.trim().toLowerCase();
+    if (key.isEmpty) return;
+    final db = await SqliteDb.instance.db;
+    final rows = await db.query(
+      'game_results',
+      columns: const ['id', 'winner_name', 'players_json'],
+    );
+    await db.transaction((txn) async {
+      for (final r in rows) {
+        final id = r['id'] as int?;
+        if (id == null) continue;
+        final winnerName = (r['winner_name'] as String?) ?? '';
+        final playersJson = (r['players_json'] as String?) ?? '[]';
+        List<dynamic> playersRaw;
+        try {
+          playersRaw = jsonDecode(playersJson) as List<dynamic>? ?? [];
+        } catch (_) {
+          playersRaw = const [];
+        }
+        final players = playersRaw.map((e) => e.toString()).toList(growable: false);
+
+        final nextWinner = winnerName.trim().toLowerCase() == key ? replacement : winnerName;
+        final nextPlayers = players
+            .map((p) => p.trim().toLowerCase() == key ? replacement : p)
+            .toList(growable: false);
+
+        if (nextWinner == winnerName && _listEquals(nextPlayers, players)) continue;
+
+        await txn.update(
+          'game_results',
+          {
+            'winner_name': nextWinner,
+            'players_json': jsonEncode(nextPlayers),
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+    });
+  }
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   /// Käyttäjäkohtainen ranking: eniten voittoja ensin. Pysyvä lista = kaikki tulokset.
   Future<List<LeaderboardEntry>> getLeaderboardByWins({
     GameModeId? mode,
@@ -211,12 +275,16 @@ class LeaderboardRepository {
         playerName: playerName,
         totalWins: 0,
         totalPlayed: 0,
+        totalPoints: 0,
+        totalDarts: 0,
         byMode: {},
       );
     }
     final results = await getResults(limit: null);
     var totalWins = 0;
     var totalPlayed = 0;
+    var totalPoints = 0;
+    var totalDarts = 0;
     DateTime? lastPlayed;
     final byMode = <GameModeId, ModeStats>{};
     for (final r in results) {
@@ -227,10 +295,39 @@ class LeaderboardRepository {
       if (lastPlayed == null || r.playedAt.isAfter(lastPlayed)) {
         lastPlayed = r.playedAt;
       }
-      final modeStats = byMode[r.gameModeId] ?? const ModeStats(wins: 0, played: 0);
+      var addPoints = 0;
+      var addDarts = 0;
+      final s = r.scores;
+      final pMap = s['dartPointsByPlayer'];
+      final dMap = s['dartCountByPlayer'];
+      if (pMap is Map && dMap is Map) {
+        dynamic pv;
+        dynamic dv;
+        for (final e in pMap.entries) {
+          if (e.key.toString().trim().toLowerCase() == key) {
+            pv = e.value;
+            break;
+          }
+        }
+        for (final e in dMap.entries) {
+          if (e.key.toString().trim().toLowerCase() == key) {
+            dv = e.value;
+            break;
+          }
+        }
+        if (pv is num) addPoints = pv.toInt();
+        if (dv is num) addDarts = dv.toInt();
+      }
+      totalPoints += addPoints;
+      totalDarts += addDarts;
+
+      final modeStats = byMode[r.gameModeId] ??
+          const ModeStats(wins: 0, played: 0, points: 0, darts: 0);
       byMode[r.gameModeId] = ModeStats(
         wins: modeStats.wins + (r.winnerName.trim().toLowerCase() == key ? 1 : 0),
         played: modeStats.played + 1,
+        points: modeStats.points + addPoints,
+        darts: modeStats.darts + addDarts,
       );
     }
     final candidates = results
@@ -243,6 +340,8 @@ class LeaderboardRepository {
       playerName: displayName,
       totalWins: totalWins,
       totalPlayed: totalPlayed,
+      totalPoints: totalPoints,
+      totalDarts: totalDarts,
       byMode: byMode,
       lastPlayed: lastPlayed,
     );

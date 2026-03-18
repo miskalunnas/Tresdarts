@@ -5,6 +5,7 @@ import '../../games/game_mode.dart';
 import '../game_rules.dart';
 import '../throw_input_sheet.dart';
 import '../darts_throw.dart';
+import '../confirm_exit_game_dialog.dart';
 import 'x01_game.dart';
 
 class X01GameView extends StatefulWidget {
@@ -53,6 +54,7 @@ class _X01GameViewState extends State<X01GameView> {
     });
     if (_state.isFinished) {
       final winnerIndex = _state.winnerIndex!;
+      final pd = _pointsAndDartsFromX01(_state);
       widget.onFinished(
         GameResult(
           gameModeId: GameModeId.x01,
@@ -61,11 +63,29 @@ class _X01GameViewState extends State<X01GameView> {
           scores: {
             'startScore': _state.startScore,
             'throws': _throws.length,
+            'dartPointsByPlayer': pd.pointsByName,
+            'dartCountByPlayer': pd.dartsByName,
           },
           playedAt: DateTime.now(),
         ),
       );
     }
+  }
+
+  _NamePointsDarts _pointsAndDartsFromX01(X01GameState state) {
+    final pointsByIdx = <int, int>{};
+    final dartsByIdx = <int, int>{};
+    for (final h in state.history) {
+      pointsByIdx[h.playerIndex] = (pointsByIdx[h.playerIndex] ?? 0) + h.points;
+      dartsByIdx[h.playerIndex] = (dartsByIdx[h.playerIndex] ?? 0) + 1;
+    }
+    final pointsByName = <String, int>{};
+    final dartsByName = <String, int>{};
+    for (var i = 0; i < state.players.length; i++) {
+      pointsByName[state.players[i]] = pointsByIdx[i] ?? 0;
+      dartsByName[state.players[i]] = dartsByIdx[i] ?? 0;
+    }
+    return _NamePointsDarts(pointsByName: pointsByName, dartsByName: dartsByName);
   }
 
   void _addThrow() {
@@ -100,7 +120,11 @@ class _X01GameViewState extends State<X01GameView> {
               Row(
                 children: [
                   OutlinedButton.icon(
-                    onPressed: widget.onExit,
+                    onPressed: () async {
+                      if (await confirmExitGame(context)) {
+                        widget.onExit();
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Takaisin'),
                   ),
@@ -156,6 +180,11 @@ class _X01GameViewState extends State<X01GameView> {
                           icon: const Icon(Icons.add, size: 18),
                           label: const Text('Lisää heitto'),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      _X01ThrowPanel(
+                        state: _state,
+                        activePlayerIndex: active,
                       ),
                       const SizedBox(height: 12),
                       _LastThrows(throws: _throws),
@@ -233,6 +262,100 @@ class _LastThrows extends StatelessWidget {
       ],
     );
   }
+}
+
+class _X01ThrowPanel extends StatelessWidget {
+  const _X01ThrowPanel({
+    required this.state,
+    required this.activePlayerIndex,
+  });
+
+  final X01GameState state;
+  final int activePlayerIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final history = state.history
+        .where((h) => h.playerIndex == activePlayerIndex)
+        .toList(growable: false);
+    final last = history.reversed.take(9).toList(growable: false);
+    final totalPoints =
+        history.fold<int>(0, (sum, h) => sum + h.points);
+    final darts = history.length;
+    final avg3 = darts > 0 ? (totalPoints / darts) * 3.0 : 0.0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                state.players[activePlayerIndex],
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
+              ),
+              const Spacer(),
+              Text(
+                'AVG (3): ${avg3.toStringAsFixed(1)}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (last.isEmpty)
+            Text(
+              'Ei heittoja vielä.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final h in last)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.outline),
+                    ),
+                    child: Text(
+                      '${h.points}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: cs.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NamePointsDarts {
+  const _NamePointsDarts({required this.pointsByName, required this.dartsByName});
+  final Map<String, int> pointsByName;
+  final Map<String, int> dartsByName;
 }
 
 class _ScoreRow extends StatelessWidget {

@@ -88,7 +88,7 @@ class HomeMenuView extends StatelessWidget {
               const SizedBox(height: 32),
               _HeroCTA(
                 title: 'Darts',
-                subtitle: 'Pelimuodot, pelin aloitus ja pisteet',
+                subtitle: '',
                 buttonText: 'Aloita',
                 onPressed: onSelectGameModes,
               ),

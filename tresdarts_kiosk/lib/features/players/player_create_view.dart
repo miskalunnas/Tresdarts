@@ -65,10 +65,20 @@ class _PlayerCreateViewState extends State<PlayerCreateView> {
       photoPath: _photoPath,
       createdAt: DateTime.now(),
     );
-    await _repo.upsert(profile);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    widget.onCreated(profile);
+    try {
+      await _repo
+          .upsert(profile)
+          .timeout(const Duration(seconds: 6), onTimeout: () => throw Exception('DB timeout'));
+      if (!mounted) return;
+      setState(() => _saving = false);
+      widget.onCreated(profile);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tallennus epäonnistui: $e')),
+      );
+    }
   }
 
   @override

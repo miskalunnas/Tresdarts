@@ -45,6 +45,30 @@ class PlayerRepository {
     );
   }
 
+  Future<void> deleteById(String id) async {
+    final db = await SqliteDb.instance.db;
+    await db.delete('players', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<PlayerProfile?> getById(String id) async {
+    final db = await SqliteDb.instance.db;
+    final rows = await db.query('players', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    final pid = (r['id'] as String?) ?? '';
+    final name = (r['name'] as String?) ?? '';
+    if (pid.isEmpty || name.isEmpty) return null;
+    return PlayerProfile(
+      id: pid,
+      name: name,
+      entrySong: r['entry_song'] as String?,
+      photoPath: r['photo_path'] as String?,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+        (r['created_at_ms'] as int?) ?? 0,
+      ),
+    );
+  }
+
   Future<PlayerProfile> upsertByName({
     required String name,
     String? entrySong,

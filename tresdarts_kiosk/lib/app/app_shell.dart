@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'idle/idle_controller.dart';
 import 'idle/idle_listener.dart';
+import '../core/db/sqlite_db.dart';
 import '../features/games/game_mode.dart';
 import '../features/games/game_mode_view.dart';
 import '../features/games/game_start_view.dart';
@@ -23,6 +24,7 @@ import '../features/settings/settings_view.dart';
 import '../features/about/about_view.dart';
 import '../features/players/player_create_view.dart';
 import '../features/players/player_edit_view.dart';
+import '../features/players/users_admin_view.dart';
 import '../features/players/player_profile.dart';
 import '../features/players/player_repository.dart';
 import '../features/players/walkout_view.dart';
@@ -44,6 +46,14 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    // Warm up SQLite so first screen doesn't stall on DB open/migration.
+    () async {
+      try {
+        await SqliteDb.instance.db;
+      } catch (_) {
+        // ignore
+      }
+    }();
     _idleController = IdleController(
       timeout: const Duration(seconds: 60),
       onTimeout: () {
@@ -122,6 +132,13 @@ class _AppShellState extends State<AppShell> {
             return MaterialPageRoute(
               settings: const RouteSettings(name: SettingsView.routeName),
               builder: (_) => const SettingsView(),
+            );
+          }
+
+          if (name == UsersAdminView.routeName) {
+            return MaterialPageRoute(
+              settings: const RouteSettings(name: UsersAdminView.routeName),
+              builder: (_) => const UsersAdminView(),
             );
           }
 

@@ -73,10 +73,20 @@ class _PlayerEditViewState extends State<PlayerEditView> {
       photoPath: _photoPath,
       createdAt: widget.initialProfile.createdAt,
     );
-    await _repo.upsert(profile);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    widget.onSaved(profile);
+    try {
+      await _repo
+          .upsert(profile)
+          .timeout(const Duration(seconds: 6), onTimeout: () => throw Exception('DB timeout'));
+      if (!mounted) return;
+      setState(() => _saving = false);
+      widget.onSaved(profile);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tallennus epäonnistui: $e')),
+      );
+    }
   }
 
   @override

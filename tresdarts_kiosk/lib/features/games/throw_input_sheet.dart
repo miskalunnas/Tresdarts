@@ -71,133 +71,131 @@ class _ThrowInputSheetState extends State<ThrowInputSheet> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final max = widget.maxPicks.clamp(1, 3);
+    final h = MediaQuery.of(context).size.height;
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: cs.outline.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        height: h * 0.85,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: cs.outline.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  max > 1 ? '${widget.title} (${_picked.length + 1}/$max)' : widget.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface,
-                      ),
-                ),
-                const Spacer(),
-                if (max > 1)
-                  TextButton(
-                    onPressed: _picked.isEmpty ? null : _finish,
-                    child: const Text('Valmis'),
-                  ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: SegmentedButton<DartMultiplier>(
-                    segments: const [
-                      ButtonSegment(value: DartMultiplier.single, label: Text('Single')),
-                      ButtonSegment(value: DartMultiplier.double, label: Text('Double')),
-                      ButtonSegment(value: DartMultiplier.triple, label: Text('Triple')),
-                    ],
-                    selected: {_m},
-                    onSelectionChanged: (s) {
-                      setState(() => _m = s.first);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                OutlinedButton(
-                  onPressed: () => _pick(
-                    const DartThrow(
-                      segment: DartSegment.miss,
-                      multiplier: DartMultiplier.single,
-                    ),
-                  ),
-                  child: const Text('MISS'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pick(
-                      const DartThrow(
-                        segment: DartSegment.bull25,
-                        multiplier: DartMultiplier.single,
-                      ),
-                    ),
-                    child: const Text('BULL 25'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _pick(
-                      const DartThrow(
-                        segment: DartSegment.bull50,
-                        multiplier: DartMultiplier.single,
-                      ),
-                    ),
-                    child: const Text('BULL 50'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.35,
-                ),
-                itemCount: 20,
-                itemBuilder: (context, index) {
-                  final n = index + 1;
-                  final selected = _selectedNumber == n;
-                  return OutlinedButton(
-                    onPressed: () {
-                      setState(() => _selectedNumber = n);
-                      _pick(
-                        DartThrow(
-                          segment: DartSegment.numbered(n),
-                          multiplier: _m,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    max > 1 ? '${widget.title} (${_picked.length + 1}/$max)' : widget.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor:
-                          selected ? cs.primaryContainer.withValues(alpha: 0.25) : null,
+                  ),
+                  const Spacer(),
+                  if (max > 1)
+                    TextButton(
+                      onPressed: _picked.isEmpty ? null : _finish,
+                      child: const Text('Valmis'),
                     ),
-                    child: Text('$n'),
-                  );
-                },
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: SegmentedButton<DartMultiplier>(
+                      segments: const [
+                        ButtonSegment(value: DartMultiplier.single, label: Text('Single')),
+                        ButtonSegment(value: DartMultiplier.double, label: Text('Double')),
+                        ButtonSegment(value: DartMultiplier.triple, label: Text('Triple')),
+                      ],
+                      selected: {_m},
+                      onSelectionChanged: (s) {
+                        setState(() => _m = s.first);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _pick(
+                        const DartThrow(
+                          segment: DartSegment.bull25,
+                          multiplier: DartMultiplier.single,
+                        ),
+                      ),
+                      child: const Text('BULL 25'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _pick(
+                        const DartThrow(
+                          segment: DartSegment.bull50,
+                          multiplier: DartMultiplier.single,
+                        ),
+                      ),
+                      child: const Text('BULL 50'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 5,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.35,
+                  ),
+                  itemCount: 21,
+                  itemBuilder: (context, index) {
+                    final n = index; // 0..20
+                    final selected = _selectedNumber == n;
+                    return OutlinedButton(
+                      onPressed: () {
+                        setState(() => _selectedNumber = n);
+                        _pick(
+                          n == 0
+                              ? const DartThrow(
+                                  segment: DartSegment.miss,
+                                  multiplier: DartMultiplier.single,
+                                )
+                              : DartThrow(
+                                  segment: DartSegment.numbered(n),
+                                  multiplier: _m,
+                                ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor:
+                            selected ? cs.primaryContainer.withValues(alpha: 0.25) : null,
+                      ),
+                      child: Text('$n'),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

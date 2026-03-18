@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../players/users_admin_view.dart';
+
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
 
@@ -37,6 +39,33 @@ class SettingsView extends StatelessWidget {
               Expanded(
                 child: ListView(
                   children: [
+                    _SettingsSection(
+                      title: 'Käyttäjät',
+                      subtitle: 'Näytä, muokkaa ja poista',
+                      icon: Icons.people_outline,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hallinnoi tallennettuja käyttäjiä ja anonymisoi tulokset poiston yhteydessä.',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () => Navigator.of(context).pushNamed(
+                                UsersAdminView.routeName,
+                              ),
+                              icon: const Icon(Icons.manage_accounts, size: 18),
+                              label: const Text('Avaa käyttäjähallinta'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     _SettingsSection(
                       title: 'Media (screensaver)',
                       subtitle: 'Kuvat ja videot',

@@ -9,6 +9,8 @@ import '../darts_throw.dart';
 import '../throw_history_sheet.dart';
 import '../throw_input_sheet.dart';
 import '../turn_timeline.dart';
+import '../player_throw_panel.dart';
+import '../confirm_exit_game_dialog.dart';
 import 'around_engine.dart';
 
 class AroundGameView extends StatefulWidget {
@@ -61,6 +63,13 @@ class _AroundGameViewState extends State<AroundGameView> {
   void _finishIfWinner() {
     final winner = _state.winnerIndex;
     if (winner == null) return;
+    final pd = computePointsAndDartsByPlayer(_timeline);
+    final pointsByPlayer = <String, int>{};
+    final dartsByPlayer = <String, int>{};
+    for (var i = 0; i < widget.players.length; i++) {
+      pointsByPlayer[widget.players[i]] = pd.points[i] ?? 0;
+      dartsByPlayer[widget.players[i]] = pd.darts[i] ?? 0;
+    }
     widget.onFinished(
       GameResult(
         gameModeId: GameModeId.aroundTheClock,
@@ -69,6 +78,8 @@ class _AroundGameViewState extends State<AroundGameView> {
         scores: {
           'progress': _state.progress,
           'throws': _timeline.flatThrows.length,
+          'dartPointsByPlayer': pointsByPlayer,
+          'dartCountByPlayer': dartsByPlayer,
         },
         playedAt: DateTime.now(),
       ),
@@ -141,7 +152,11 @@ class _AroundGameViewState extends State<AroundGameView> {
               Row(
                 children: [
                   OutlinedButton.icon(
-                    onPressed: widget.onExit,
+                    onPressed: () async {
+                      if (await confirmExitGame(context)) {
+                        widget.onExit();
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Takaisin'),
                   ),
@@ -218,7 +233,7 @@ class _AroundGameViewState extends State<AroundGameView> {
                       Text(
                         winner != null
                             ? 'Voittaja: ${widget.players[winner]}'
-                            : 'Vuoro: ${widget.players[active]} (max 3 tikkaa)',
+                            : 'Vuoro: ${widget.players[active]}',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: cs.onSurface,
@@ -241,6 +256,12 @@ class _AroundGameViewState extends State<AroundGameView> {
                             label: const Text('Muokkaa'),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 12),
+                      PlayerThrowPanel(
+                        timeline: _timeline,
+                        activePlayerIndex: active,
+                        playerName: widget.players[active],
                       ),
                       const Spacer(),
                       Row(
